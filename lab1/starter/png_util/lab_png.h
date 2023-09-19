@@ -11,6 +11,7 @@
  * INCLUDE HEADER FILES
  *****************************************************************************/
 #include <stdio.h>
+#include <stdlib.h>
 
 /******************************************************************************
  * DEFINED MACROS 
@@ -22,11 +23,14 @@
 #define CHUNK_CRC_SIZE  4 /* chunk CRC field size in bytes */
 #define DATA_IHDR_SIZE 13 /* IHDR chunk data field size */
 
+#define PNG_HEADER 0x0a1a0a0d474E5089
+
 /******************************************************************************
  * STRUCTURES and TYPEDEFS 
  *****************************************************************************/
 typedef unsigned char U8;
 typedef unsigned int  U32;
+typedef unsigned long int U64;
 
 typedef struct chunk {
     U32 length;  /* length of data in the chunk, host byte order */
