@@ -37,6 +37,7 @@ typedef struct chunk {
     U8  type[4]; /* chunk type */
     U8  *p_data; /* pointer to location where the actual data are */
     U32 crc;     /* CRC field  */
+    U8 is_corrupted;
 } *chunk_p;
 
 /* note that there are 13 Bytes valid data, compiler will padd 3 bytes to make
@@ -60,15 +61,29 @@ typedef struct simple_PNG {
     struct chunk *p_IHDR;
     struct chunk *p_IDAT;  /* only handles one IDAT chunk */  
     struct chunk *p_IEND;
+
+    U8* p_png_buffer;
+    U64 buf_length;
 } *simple_PNG_p;
 
 /******************************************************************************
  * FUNCTION PROTOTYPES 
  *****************************************************************************/
 
-int is_png(U8 *buf, size_t n);
-int get_png_height(struct data_IHDR *buf);
-int get_png_width(struct data_IHDR *buf);
-int get_png_data_IHDR(struct data_IHDR *out, FILE *fp, long offset, int whence);
+void create_png(char* path, struct simple_PNG* p_png);
 
-/* declare your own functions prototypes here */
+void destroy_png(struct simple_PNG* p_png);
+
+int is_png(char* path);
+
+void read_buf(char* path, U8* p_png_buffer, U32* p_buf_length);
+
+void read_IHDR(U8* p_chunk_start, struct chunk* p_chunk);
+
+void read_IDAT(U8* p_chunk_start, struct chunk* p_chunk);
+
+void read_IEND(U8* p_chunk_start, struct chunk* p_chunk);
+
+void destory_chunk(struct chunk* p_chunk);
+
+void is_corrupted(struct chunk* chunk);
