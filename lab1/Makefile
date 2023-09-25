@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -g -std=c99
-LD = gcc
+LD = gcc 
 LDFLAGS = -g
 LDLIBS = -lz # link with zlib
 
@@ -28,6 +28,6 @@ $(BUILD_DIRECTORY)/%.d: %.c
 -include $(DEPS)
 
 clean:
-	rm -rf $(BUILD_DIRECTORY)/*.o $(BUILD_DIRECTORY)/*.d $(TARGETS)
+	rm -rf $(BUILD_DIRECTORY)/*.o $(BUILD_DIRECTORY)/*.d $(TARGETS) $(BUILD_DIRECTORY)
 
 .PHONY: all clean

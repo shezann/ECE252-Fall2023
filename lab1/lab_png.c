@@ -86,13 +86,13 @@ void destroy_png(simple_PNG_p p_png) {
         }
 
         if (p_png->p_IHDR) {
-            destory_chunk(p_png->p_IHDR);
+            destroy_chunk(p_png->p_IHDR);
         }
         if (p_png->p_IDAT) {
-            destory_chunk(p_png->p_IDAT);
+            destroy_chunk(p_png->p_IDAT);
         }
         if (p_png->p_IEND) {
-            destory_chunk(p_png->p_IEND);
+            destroy_chunk(p_png->p_IEND);
         }
 
         free(p_png);
@@ -114,7 +114,7 @@ chunk_p create_chunk() {
     return p_chunk;
 }
 
-void destory_chunk(chunk_p p_chunk) {
+void destroy_chunk(chunk_p p_chunk) {
     if (p_chunk) {
         if (p_chunk->p_data_IHDR) {
             free(p_chunk->p_data_IHDR);
@@ -156,7 +156,7 @@ U8* read_buf(const char* path, U64* p_buf_length) {
     return p_buf;
 }
 
-int read_chunk( U8* p_chunk_start, 
+int read_chunk( const U8* p_chunk_start, 
                 U64 buf_length, 
                 chunk_p p_chunk, 
                 U8** p_next_chunk_start, 
@@ -172,7 +172,7 @@ int read_chunk( U8* p_chunk_start,
     }
     
     // Read the chunk length and set the pointer to the start of the chunk.
-    p_chunk->length = read_big_endianness_u32(p_chunk_start);
+    p_chunk->length = read_big_endian_u32(p_chunk_start);
     U64 chunk_size = CHUNK_CRC_SIZE + CHUNK_TYPE_SIZE + p_chunk->length + CHUNK_CRC_SIZE;
 
     if (buf_length < chunk_size) {
@@ -195,7 +195,7 @@ int read_chunk( U8* p_chunk_start,
     }
 
     // Finalized by reading the p_chunk crc.
-    p_chunk->crc = read_big_endianness_u32(p_chunk->p_data + p_chunk->length);
+    p_chunk->crc = read_big_endian_u32(p_chunk->p_data + p_chunk->length);
     verify_crc(p_chunk);
 
     if (p_next_chunk_start) {
@@ -209,11 +209,11 @@ int read_chunk( U8* p_chunk_start,
 } 
 
 data_IHDR_p read_IHDR(U8* p_data) {
-    /* This pointer will be freed in destory_chunk */
+    /* This pointer will be freed in destroy_chunk */
     data_IHDR_p p_IHDR = malloc(sizeof(struct data_IHDR));
 
-    p_IHDR->width = read_big_endianness_u32(p_data);
-    p_IHDR->height = read_big_endianness_u32(p_data + 4);
+    p_IHDR->width = read_big_endian_u32(p_data);
+    p_IHDR->height = read_big_endian_u32(p_data + 4);
     p_IHDR->bit_depth = p_data[8];
     p_IHDR->color_type = p_data[9];
     p_IHDR->compression = p_data[10];
@@ -223,7 +223,7 @@ data_IHDR_p read_IHDR(U8* p_data) {
     return p_IHDR;
 }
 
-U32 read_big_endianness_u32(U8* p_u8) {
+U32 read_big_endian_u32(U8* p_u8) {
     U32 len = 0;
 
     /** 
