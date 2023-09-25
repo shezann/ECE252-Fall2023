@@ -1,12 +1,33 @@
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -std=c99
 LD = gcc
 LDFLAGS = -g
+LDLIBS = -lz # link with zlib
 
-OBJS1 = pnginfo.o
+BUILD_DIRECTORY = obj
 
-all : pnginfo
+#SRCS = $(wildcard *.c)
+SRCS = $(filter-out catpng.c, $(wildcard *.c))
+OBJS = $(addprefix $(BUILD_DIRECTORY)/, $(notdir $(SRCS:.c=.o)))
+DEPS := $(OBJS:.o=.d)
 
-pnginfo : $(OBJS1)
-	$(LD) $(LDFLAGS) -o $@ $^
+TARGETS = findpng
 
+all : $(TARGETS)
+
+findpng : $(OBJS)
+	$(LD)  -o $@ $^ $(LDLIBS) $(LDFLAGS)
+
+$(BUILD_DIRECTORY)/%.o: %.c
+	mkdir -p obj
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIRECTORY)/%.d: %.c
+	$(CC) -MM -MF $@ $<
+
+-include $(DEPS)
+
+clean:
+	rm -rf $(BUILD_DIRECTORY)/*.o $(BUILD_DIRECTORY)/*.d $(TARGETS)
+
+.PHONY: all clean

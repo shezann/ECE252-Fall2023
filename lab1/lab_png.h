@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "zutil.h"
 #include "crc.h"
 
 /******************************************************************************
@@ -82,12 +83,12 @@ void destroy_png(simple_PNG_p p_png);
 /**
  * 
 */
-int is_png(char* path);
+int is_png(const char* path);
 
 /**
  * 
 */
-U8* read_buf(char* path, U64* p_buf_length);
+U8* read_buf(const char* path, U64* p_buf_length);
 
 int read_chunk( U8* p_chunk_start, 
                 U64 buf_length, 

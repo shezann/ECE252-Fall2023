@@ -2,9 +2,9 @@
 
 /* The magic number of the PNG header */
 const U8 PNG_SIGNITURE[PNG_SIG_SIZE] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-const U8 TYPE_IHDR[CHUNK_TYPE_SIZE] = "IHDR";
+const U8 TYPE_IHDR[CHUNK_TYPE_SIZE + 1] = "IHDR";
 
-int is_png(char* path) {
+int is_png(const char* path) {
     FILE* file = fopen(path, "rb");
 
     if (!file) { // The file doesn't exist
@@ -125,7 +125,7 @@ void destory_chunk(chunk_p p_chunk) {
     }
 }
 
-U8* read_buf(char* path, U64* p_buf_length) {
+U8* read_buf(const char* path, U64* p_buf_length) {
     FILE *file = fopen(path, "rb");
 
     if (file == NULL) { // The file doesn't exist
@@ -144,7 +144,7 @@ U8* read_buf(char* path, U64* p_buf_length) {
      */
     U8* p_buf = (U8*) malloc(f_length);
     
-    U64 read_length = fread(p_buf_length, sizeof(U8), f_length, file);
+    fread(p_buf_length, sizeof(U8), f_length, file);
 
     fclose(file);
 
