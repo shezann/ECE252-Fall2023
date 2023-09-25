@@ -12,6 +12,15 @@
  *****************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "crc.h"
+
+/******************************************************************************
+ * STRUCTURES and TYPEDEFS 
+ *****************************************************************************/
+typedef unsigned char U8;
+typedef unsigned int  U32;
+typedef unsigned long int U64;
 
 /******************************************************************************
  * DEFINED MACROS 
@@ -23,22 +32,8 @@
 #define CHUNK_CRC_SIZE  4 /* chunk CRC field size in bytes */
 #define DATA_IHDR_SIZE 13 /* IHDR chunk data field size */
 
-#define PNG_HEADER 0x0a1a0a0d474E5089
-
-/******************************************************************************
- * STRUCTURES and TYPEDEFS 
- *****************************************************************************/
-typedef unsigned char U8;
-typedef unsigned int  U32;
-typedef unsigned long int U64;
-
-typedef struct chunk {
-    U32 length;  /* length of data in the chunk, host byte order */
-    U8  type[4]; /* chunk type */
-    U8  *p_data; /* pointer to location where the actual data are */
-    U32 crc;     /* CRC field  */
-    U8 is_corrupted;
-} *chunk_p;
+extern const U8 PNG_SIGNITURE[];
+extern const U8 TYPE_IHDR[];
 
 /* note that there are 13 Bytes valid data, compiler will padd 3 bytes to make
    the structure 16 Bytes due to alignment. So do not use the size of this
@@ -56,11 +51,21 @@ typedef struct data_IHDR {// IHDR chunk data
     U8  interlace;    /* =0: no interlace; =1: Adam7 interlace */
 } *data_IHDR_p;
 
+typedef struct chunk {
+    U32 length;  /* length of data in the chunk, host byte order */
+    U8  type[4]; /* chunk type */
+    U8  *p_data; /* pointer to location where the actual data are */
+    U32 crc;     /* CRC field  */
+
+    data_IHDR_p p_data_IHDR; /* Save the IHDR data if this is an IHDR chunk */
+    U8 is_corrupted; /* If the data is corrupted */
+} *chunk_p;
+
 /* A simple PNG file format, three chunks only*/
 typedef struct simple_PNG {
-    struct chunk *p_IHDR;
-    struct chunk *p_IDAT;  /* only handles one IDAT chunk */  
-    struct chunk *p_IEND;
+    chunk_p p_IHDR;
+    chunk_p p_IDAT;  /* only handles one IDAT chunk */  
+    chunk_p p_IEND;
 
     U8* p_png_buffer;
     U64 buf_length;
@@ -70,20 +75,44 @@ typedef struct simple_PNG {
  * FUNCTION PROTOTYPES 
  *****************************************************************************/
 
-void create_png(char* path, struct simple_PNG* p_png);
+simple_PNG_p create_png(char* path);
 
-void destroy_png(struct simple_PNG* p_png);
+void destroy_png(simple_PNG_p p_png);
 
+/**
+ * 
+*/
 int is_png(char* path);
 
-void read_buf(char* path, U8* p_png_buffer, U32* p_buf_length);
+/**
+ * 
+*/
+U8* read_buf(char* path, U64* p_buf_length);
 
-void read_IHDR(U8* p_chunk_start, struct chunk* p_chunk);
+int read_chunk( U8* p_chunk_start, 
+                U64 buf_length, 
+                chunk_p p_chunk, 
+                U8** p_next_chunk_start, 
+                U64* p_remained_buffer_size);
 
-void read_IDAT(U8* p_chunk_start, struct chunk* p_chunk);
+data_IHDR_p read_IHDR(U8* p_data);
 
-void read_IEND(U8* p_chunk_start, struct chunk* p_chunk);
+/**
+ * Create an empty chunk
+ * 
+ * @return return a new chunk_p with everything initialized to 0 or NULL
+*/
+chunk_p create_chunk();
 
-void destory_chunk(struct chunk* p_chunk);
+/**
+ * Destory a chunk structure: This method will free everything 
+ * inside chunk structure, and also the p_chunk. However, it will not 
+ * free the p_chunk->p_data as it's not allocated inside the chunk methods.
+ * 
+ * @param p_chunk The chunk to destroy
+*/
+void destory_chunk(chunk_p p_chunk);
 
-void is_corrupted(struct chunk* chunk);
+void verify_crc(chunk_p p_chunk);
+
+U32 read_big_endianness_u32(U8* p_chunck_start);

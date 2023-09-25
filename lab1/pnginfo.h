@@ -4,3 +4,5 @@
  * Functions  
 */
 
+int ispng(char* path);
+
