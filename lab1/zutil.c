@@ -36,7 +36,7 @@ U8* mem_def(U64 *dest_len, U8 *source, U64 source_len, int level) {
     ret = deflate(&strm, Z_FINISH);
     if (ret == Z_STREAM_ERROR) { /* Check if there if any error */
         perror("Error when compressing the memory.\n");
-        return;
+        return NULL;
     } 
 
     *dest_len = max_compressed_len - strm.avail_out; /* Retruns the dest length */
