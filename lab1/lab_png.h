@@ -19,6 +19,7 @@
 /******************************************************************************
  * STRUCTURES and TYPEDEFS 
  *****************************************************************************/
+
 typedef unsigned char U8;
 typedef unsigned int  U32;
 typedef unsigned long int U64;
@@ -47,7 +48,7 @@ typedef struct chunk {
 
     data_IHDR_p p_data_IHDR; /* Save the IHDR data if this is an IHDR chunk */
     U8 is_corrupted; /* If the data is corrupted */
-} *chunk_p;
+}* chunk_p;
 
 /* A simple PNG file format, three chunks only*/
 typedef struct simple_PNG {
@@ -55,9 +56,9 @@ typedef struct simple_PNG {
     chunk_p p_IDAT;  /* only handles one IDAT chunk */  
     chunk_p p_IEND;
 
-    U8* p_png_buffer;
+    U8* p_png_buffer; /* The buffer to hold the*/
     U64 buf_length;
-} *simple_PNG_p;
+}* simple_PNG_p;
 
 
 /******************************************************************************
@@ -72,15 +73,25 @@ typedef struct simple_PNG {
 
 extern const U8 PNG_SIGNITURE[];
 extern const U8 TYPE_IHDR[];
-
+extern const U8 TYPE_IDAT[];
+extern const U8 TYPE_IEND[];
 
 /******************************************************************************
  * FUNCTION PROTOTYPES 
  *****************************************************************************/
 
 /**
+ * @brief Write a PNG to a given directory.
+ * 
+ * @param p_png The pointer to the PNG struct.
+ * @param directory The path to the output file.
+*/
+void write_png(simple_PNG_p p_png, const char* filename);
+
+/**
  * @brief Create a PNG struct.
  * 
+ * @param path The path to the file.
  * @return A pointer to the PNG struct. 
  * @exception Returns NULL on errors (e.g. allocation failure, file not found, bad formatted).
  * @note The requester is responsible to call the destory_png method to prevent memory leak.
@@ -125,7 +136,7 @@ U8* read_buf(const char* path, U64* p_buf_length);
  * @param p_remained_buffer_size Pointer to be updated with the remaining size of the buffer after reading the chunk.
  * @return Returns 1 if the chunk is read successfully; otherwise, returns 0.
  */
-int read_chunk( const U8* p_chunk_start, 
+int read_chunk( U8* p_chunk_start, 
                 U64 buf_length, 
                 chunk_p p_chunk, 
                 U8** p_next_chunk_start, 
@@ -162,11 +173,12 @@ chunk_p create_chunk();
 void destroy_chunk(chunk_p p_chunk);
 
 /**
- * @brief Checks the CRC code of a given chunk and updates the 'is_corrupted' field.
+ * @brief Checks the CRC code of a given chunk.
  * 
  * @param p_chunk Pointer to the chunk whose CRC needs to be verified.
+ * @return Returns the CRC code.
  */
-void verify_crc(chunk_p p_chunk);
+U32 verify_crc(chunk_p p_chunk);
 
 
 /**
@@ -176,3 +188,11 @@ void verify_crc(chunk_p p_chunk);
  * @return The decoded unsigned integer.
  */
 U32 read_big_endian_u32(U8* p_chunk_start);
+
+/**
+ * @brief Write an unsigned integer into the buffer in big-endian format
+ * 
+ * @param p_chunk_start Pointer to the start of the 4-byte sequence.
+ * @param value The unsigned integer.
+*/
+void write_big_endian_u32(U8* p_chunk_start, U32 value);

@@ -2,12 +2,16 @@
 
 /* The magic number of the PNG header */
 const U8 PNG_SIGNITURE[PNG_SIG_SIZE] = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+/* The file type names */
 const U8 TYPE_IHDR[CHUNK_TYPE_SIZE + 1] = "IHDR";
+const U8 TYPE_IDAT[CHUNK_TYPE_SIZE + 1] = "IDAT";
+const U8 TYPE_IEND[CHUNK_TYPE_SIZE + 1] = "IEND";
+
 
 int is_png(const char* path) {
     FILE* file = fopen(path, "rb");
 
-    if (!file) { // The file doesn't exist
+    if (!file) { // The file doesn't exists
         return 0;
     }
 
@@ -35,6 +39,20 @@ int is_png(const char* path) {
     return 1;
 }
 
+void write_png(simple_PNG_p p_png, const char* filename) {
+    FILE *file = fopen(filename, "wb"); /* Open a file in binary mode */
+    if (file == NULL) {
+        perror("Error when writing the file.\n");
+        return;
+    }
+    U64 written = fwrite(p_png->p_png_buffer, 1, p_png->buf_length, file);
+    fclose(file); 
+
+    if (written != p_png->buf_length) {
+        perror("Error when writing the file.\n");
+    }
+}
+
 simple_PNG_p create_png(char* path) {
     if (!is_png(path)) {
         printf("%s is not a png file.\n", path);
@@ -52,8 +70,8 @@ simple_PNG_p create_png(char* path) {
         return NULL;
     }
 
-    U8* p_chunk_start = p_png->p_png_buffer;
-    U64 buf_size = p_png->buf_length;
+    U8* p_chunk_start = p_png->p_png_buffer + PNG_SIG_SIZE;
+    U64 buf_size = p_png->buf_length - PNG_SIG_SIZE;
 
     // Read the raw chunks
     p_png->p_IHDR = create_chunk();
@@ -144,7 +162,13 @@ U8* read_buf(const char* path, U64* p_buf_length) {
      */
     U8* p_buf = (U8*) malloc(f_length);
     
-    fread(p_buf_length, sizeof(U8), f_length, file);
+    if (fread(p_buf, sizeof(U8), f_length, file) != f_length) {
+        // Handle read error here, e.g., close file, free buffer, return NULL.
+        perror("Failed to read the entire file.\n");
+        free(p_buf);
+        fclose(file);
+        return NULL;
+    }
 
     fclose(file);
 
@@ -156,7 +180,7 @@ U8* read_buf(const char* path, U64* p_buf_length) {
     return p_buf;
 }
 
-int read_chunk( const U8* p_chunk_start, 
+int read_chunk( U8* p_chunk_start, 
                 U64 buf_length, 
                 chunk_p p_chunk, 
                 U8** p_next_chunk_start, 
@@ -173,13 +197,13 @@ int read_chunk( const U8* p_chunk_start,
     
     // Read the chunk length and set the pointer to the start of the chunk.
     p_chunk->length = read_big_endian_u32(p_chunk_start);
-    U64 chunk_size = CHUNK_CRC_SIZE + CHUNK_TYPE_SIZE + p_chunk->length + CHUNK_CRC_SIZE;
+    U64 chunk_size = CHUNK_LEN_SIZE + CHUNK_TYPE_SIZE + p_chunk->length + CHUNK_CRC_SIZE;
 
     if (buf_length < chunk_size) {
         perror("The chunk buffer doesn't content the expected len of the data.\n");
         return 0;
     }
-    p_chunk->p_data = p_chunk_start + CHUNK_CRC_SIZE + CHUNK_TYPE_SIZE;
+    p_chunk->p_data = p_chunk_start + CHUNK_LEN_SIZE + CHUNK_TYPE_SIZE;
 
     // Copy the chunk type.
     memcpy(p_chunk->type, p_chunk_start + CHUNK_LEN_SIZE, CHUNK_TYPE_SIZE);
@@ -187,7 +211,7 @@ int read_chunk( const U8* p_chunk_start,
     // If the chunk is an IHDR chunk.
     if (memcmp(p_chunk->type, TYPE_IHDR, CHUNK_TYPE_SIZE) == 0) {
         if (p_chunk->length == DATA_IHDR_SIZE) {
-            p_chunk->p_data_IHDR = read_IHDR(p_chunk_start);
+            p_chunk->p_data_IHDR = read_IHDR(p_chunk->p_data);
         } else {
             perror("The chunk has type IHDR but the length is not 13 bytes.\n");
             return 0;
@@ -196,8 +220,8 @@ int read_chunk( const U8* p_chunk_start,
 
     // Finalized by reading the p_chunk crc.
     p_chunk->crc = read_big_endian_u32(p_chunk->p_data + p_chunk->length);
-    verify_crc(p_chunk);
-
+    p_chunk->is_corrupted = p_chunk->crc != verify_crc(p_chunk);
+ 
     if (p_next_chunk_start) {
         *p_next_chunk_start = p_chunk_start + chunk_size;
     }
@@ -234,13 +258,13 @@ U32 read_big_endian_u32(U8* p_u8) {
      *      pointer cast.
      */
     for (int i=0; i<CHUNK_LEN_SIZE; i++) {
-        len = len << sizeof(U8); // Shift a byte for a new byte
+        len = len << 8; // Shift a byte for a new byte
         len = len | p_u8[i]; // Add the new byte
     }
     return len;
 }
 
-void verify_crc(chunk_p p_chunk) {
+U32 verify_crc(chunk_p p_chunk) {
     if (!crc_table_computed) {
         make_crc_table();
     }
@@ -257,14 +281,11 @@ void verify_crc(chunk_p p_chunk) {
     // Free the temp buffer.
     free(buf);
 
-    p_chunk->is_corrupted = p_chunk->crc == crc_;
+    return crc_;
 }
 
-// int main(int argc, char *argv[]) {
-//     if (argc > 0) {
-//         simple_PNG_p p_png = create_png(argv[0]);
-//         free(p_png);
-//     }
-
-//     return 0;  
-// }
+void write_big_endian_u32(U8* p_chunk_start, U32 value) {
+    for (int i=0; i<4; i++) {
+        p_chunk_start[i] = (value >> ((3 - i) * 8)) & 0xFF;
+    }
+}
