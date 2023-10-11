@@ -94,7 +94,7 @@ void write_png(simple_PNG_p p_png, const char* filename);
  * @param path The path to the file.
  * @return A pointer to the PNG struct. 
  * @exception Returns NULL on errors (e.g. allocation failure, file not found, bad formatted).
- * @note The requester is responsible to call the destory_png method to prevent memory leak.
+ * @note The caller is responsible to call the destory_png method to prevent memory leak.
  * @see destory_png
 */
 simple_PNG_p create_png(char* path);
@@ -121,7 +121,7 @@ int is_png(const char* path);
  * @param p_buf_length  Pointer to be updated to store the buffer's length. 
  * @return A pointer to the buffer containing the file's content.
  * @exception Returns NULL on errors (e.g., allocation failure, file not found).
- * @note The requester is responsible to free the returned pointer.
+ * @note The caller is responsible to free the returned pointer.
  */
 U8* read_buf(const char* path, U64* p_buf_length);
 
@@ -148,7 +148,7 @@ int read_chunk( U8* p_chunk_start,
  * 
  * @param p_data Pointer to the starting position of the IHDR data.
  * @return Returns a pointer to data_IHDR containing the IHDR data. 
- * @note The requester is responsible to free the returned pointer.
+ * @note The caller is responsible to free the returned pointer.
 */
 data_IHDR_p read_IHDR(U8* p_data);
 
@@ -156,7 +156,7 @@ data_IHDR_p read_IHDR(U8* p_data);
  * @brief Create an empty chunk.
  * 
  * @return return a new chunk_p with everything initialized to 0 or NULL.
- * @note The requester is responsible to call the destroy_chunk method to prevent memory leak.
+ * @note The caller is responsible to call the destroy_chunk method to prevent memory leak.
  * @see destroy_chunk
 */
 chunk_p create_chunk();
