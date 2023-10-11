@@ -56,8 +56,8 @@ typedef struct simple_PNG {
     chunk_p p_IDAT;  /* only handles one IDAT chunk */  
     chunk_p p_IEND;
 
-    U8* p_png_buffer; /* The buffer to hold the*/
-    U64 buf_length;
+    U8* p_png_buffer; /* The buffer to hold the */
+    U64 buf_length;   /* The length of the buffer */
 }* simple_PNG_p;
 
 
@@ -83,15 +83,15 @@ extern const U8 TYPE_IEND[];
 /**
  * @brief Write a PNG to a given directory.
  * 
- * @param p_png The pointer to the PNG struct.
- * @param directory The path to the output file.
+ * @param[in] p_png The pointer to the PNG struct.
+ * @param[in] directory The path to the output file.
 */
 void write_png(simple_PNG_p p_png, const char* filename);
 
 /**
  * @brief Create a PNG struct.
  * 
- * @param path The path to the file.
+ * @param[in] path The path to the file.
  * @return A pointer to the PNG struct. 
  * @exception Returns NULL on errors (e.g. allocation failure, file not found, bad formatted).
  * @note The caller is responsible to call the destory_png method to prevent memory leak.
@@ -102,7 +102,7 @@ simple_PNG_p create_png(char* path);
 /**
  * @brief Destory a PNG structure.
  * 
- * @param p_png The pointer to the PNG struct to destroy.
+ * @param[in] p_png The pointer to the PNG struct to destroy.
  * @see create_png
 */
 void destroy_png(simple_PNG_p p_png);
@@ -110,18 +110,18 @@ void destroy_png(simple_PNG_p p_png);
 /**
  * @brief Verify if the given path is a PNG file.
  * 
- * @param path The path to the file.
+ * @param[in] path The path to the file.
 */
 int is_png(const char* path);
 
 /**
  * @brief Loads the content of a file into a buffer. 
  * 
- * @param path          Path to the file.
- * @param p_buf_length  Pointer to be updated to store the buffer's length. 
- * @return A pointer to the buffer containing the file's content.
- * @exception Returns NULL on errors (e.g., allocation failure, file not found).
- * @note The caller is responsible to free the returned pointer.
+ * @param[in] path          Path to the file.
+ * @param[in] p_buf_length  Pointer to be updated to store the buffer's length. 
+ * @return      A pointer to the buffer containing the file's content.
+ * @exception   Returns NULL on errors (e.g., allocation failure, file not found).
+ * @note        The caller is responsible to free the returned pointer to prevent memory leak.
  */
 U8* read_buf(const char* path, U64* p_buf_length);
 
@@ -129,11 +129,11 @@ U8* read_buf(const char* path, U64* p_buf_length);
  * @brief Read a PNG chunk from the provided buffer.
  * 
  * 
- * @param p_chunk_start         Pointer to the starting position of the chunk within the buffer.
- * @param buf_length            Total length of the buffer.
- * @param p_chunk               Pointer to the empty chunk structure.
- * @param p_next_chunk_start    Pointer to be updated with the starting position of the next chunk.
- * @param p_remained_buffer_size Pointer to be updated with the remaining size of the buffer after reading the chunk.
+ * @param[in] p_chunk_start             Pointer to the starting position of the chunk within the buffer.
+ * @param[in] buf_length                The length of the buffer.
+ * @param[in] p_chunk                   Pointer to the empty chunk structure.
+ * @param[out] p_next_chunk_start       Pointer to be updated with the starting position of the next chunk.
+ * @param[out] p_remained_buffer_size   Pointer to be updated with the remaining size of the buffer after reading the chunk.
  * @return Returns 1 if the chunk is read successfully; otherwise, returns 0.
  */
 int read_chunk( U8* p_chunk_start, 
@@ -146,17 +146,17 @@ int read_chunk( U8* p_chunk_start,
 /**
  * @brief Read the IHDR data of a PNG file.
  * 
- * @param p_data Pointer to the starting position of the IHDR data.
- * @return Returns a pointer to data_IHDR containing the IHDR data. 
- * @note The caller is responsible to free the returned pointer.
+ * @param[in] p_data    Pointer to the starting position of the IHDR data.
+ * @return              Returns a pointer to data_IHDR containing the IHDR data. 
+ * @note                The caller is responsible to free the returned pointer to prevent memory leak.
 */
 data_IHDR_p read_IHDR(U8* p_data);
 
 /**
  * @brief Create an empty chunk.
  * 
- * @return return a new chunk_p with everything initialized to 0 or NULL.
- * @note The caller is responsible to call the destroy_chunk method to prevent memory leak.
+ * @return Return a new chunk_p with everything initialized to 0 or NULL.
+ * @note   The caller is responsible to call the destroy_chunk method to prevent memory leak.
  * @see destroy_chunk
 */
 chunk_p create_chunk();
@@ -167,7 +167,7 @@ chunk_p create_chunk();
  * This function frees all fields within the chunk structure and the structure itself. 
  * However, it does not free the p_data field, as this is not allocated by the chunk methods.
  * 
- * @param p_chunk Pointer to the chunk to be destroyed.
+ * @param[in] p_chunk Pointer to the chunk to be destroyed.
  * @see create_chunk
  */
 void destroy_chunk(chunk_p p_chunk);
@@ -175,8 +175,8 @@ void destroy_chunk(chunk_p p_chunk);
 /**
  * @brief Checks the CRC code of a given chunk.
  * 
- * @param p_chunk Pointer to the chunk whose CRC needs to be verified.
- * @return Returns the CRC code.
+ * @param[in] p_chunk   Pointer to the chunk whose CRC needs to be verified.
+ * @return              Returns the CRC code.
  */
 U32 verify_crc(chunk_p p_chunk);
 
@@ -184,7 +184,7 @@ U32 verify_crc(chunk_p p_chunk);
 /**
  * @brief Convert 4 bytes from big-endian format to an unsigned integer.
  * 
- * @param p_chunk_start Pointer to the start of the 4-byte sequence.
+ * @param[in] p_chunk_start Pointer to the start of the 4-byte sequence.
  * @return The decoded unsigned integer.
  */
 U32 read_big_endian_u32(U8* p_chunk_start);
@@ -192,7 +192,7 @@ U32 read_big_endian_u32(U8* p_chunk_start);
 /**
  * @brief Write an unsigned integer into the buffer in big-endian format
  * 
- * @param p_chunk_start Pointer to the start of the 4-byte sequence.
+ * @param[in] p_chunk_start Pointer to the start of the 4-byte sequence.
  * @param value The unsigned integer.
 */
 void write_big_endian_u32(U8* p_chunk_start, U32 value);
