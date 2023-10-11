@@ -25,11 +25,6 @@ $(BUILD_DIRECTORY)/%.o: %.c
 	mkdir -p obj
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIRECTORY)/%.d: %.c
-	$(CC) -MM -MF $@ $<
-
--include $(DEPS)
-
 clean:
 	rm -rf $(BUILD_DIRECTORY)/*.o $(BUILD_DIRECTORY)/*.d $(TARGETS) $(BUILD_DIRECTORY)
 
