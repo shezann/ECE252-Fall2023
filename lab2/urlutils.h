@@ -78,10 +78,10 @@ Recv_buf_p fetch_url(CURL* curl_handle);
 /**
  * @brief Write callback function to save a the received data to a buffer.
  * 
- * @param[in] p_recv the received libcurl data, which is provided by libcurl.
- * @param[in] size the size of each memb.
- * @param[in] nmemb the number of memb.
- * @param[out] p_userdata the user data, which is going to be a Recv_buf_p type.
+ * @param[in]   p_recv the received libcurl data, which is provided by libcurl.
+ * @param[in]   size the size of each memb.
+ * @param[in]   nmemb the number of memb.
+ * @param[out]  p_userdata the user data, which is going to be a Recv_buf_p type.
  * @return the size of the received data
 */
 size_t write_cb_curl(void *p_recv, size_t size, size_t nmemb, void *p_userdata);
@@ -91,10 +91,10 @@ size_t write_cb_curl(void *p_recv, size_t size, size_t nmemb, void *p_userdata);
  *        store it in the user data.
  *        The sequence number is stored in the header as "X-Ece252-Fragment: <seq>".
  * 
- * @param[in] p_recv the received libcurl header data, which is provided by libcurl.
- * @param[in] size the size of each memb.
- * @param[in] nitems the number of memb.
- * @param[out] p_userdata the user data, which is going to be a Recv_PNG_p type.
+ * @param[in]   p_recv the received libcurl header data, which is provided by libcurl.
+ * @param[in]   size the size of each memb.
+ * @param[in]   nitems the number of memb.
+ * @param[out]  p_userdata the user data, which is going to be a Recv_PNG_p type.
  * @return the size of the received header data
 */
 size_t header_cb_curl(char *p_recv, size_t size, size_t nitems, void *p_userdata);

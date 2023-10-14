@@ -12,9 +12,10 @@
 #define CONCAT(a, b) a##b
 
 typedef struct PNG_segments {
-    simple_PNG_p p_pngs[NUM_SEGMENTS]; /* Hold all png segments */
-    int num_pngs;                      /* Number of png segments fetched */
-    pthread_mutex_t mutex;           /* Mutex for accessing pngs */
+    simple_PNG_p p_pngs[NUM_SEGMENTS];  /* Hold all png segments */
+    int num_pngs;                       /* Number of png segments fetched. 
+                                            Used to check how many pngs have been downloaded */
+    pthread_mutex_t mutex;              /* Mutex for accessing pngs */
 } PNG_segments_t, *PNG_segments_p;
 
 // Global variable
@@ -22,6 +23,7 @@ extern PNG_segments_t global_PNG_segments; // defined in paster.c
 
 /**
  * @brief      Destroy the PNG_segments_t struct
+ * 
  * @note       The global variable global_PNG_segments is destroyed.
  *             Should be called at the end of the program.
  */
@@ -29,8 +31,11 @@ void cleanup_png_segments();
 
 /**
  * @brief      Fetch the PNG to the PNG_segments_t struct
+ * @details    The png segments that downloaded from the URLs are 
+ *             stored in the global variable global_PNG_segments->pngs.
  * 
  * @param[in]  arg  The url of the PNG (char*)
+ *                  Example: http://ece252-1.uwaterloo.ca:2520/image?img=N
  * @return     NULL
 */
 void* fetch_png(void* arg);
