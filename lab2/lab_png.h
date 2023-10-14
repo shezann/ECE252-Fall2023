@@ -100,6 +100,19 @@ void write_png(simple_PNG_p p_png, const char* filename);
 simple_PNG_p create_png(char* path);
 
 /**
+ * @brief Create a PNG struct from a buffer.
+ * 
+ * @param[in] p_buf The pointer to the buffer.
+ * @param[in] buf_length The length of the buffer.
+ * @return A pointer to the PNG struct.
+ * @exception Returns NULL on errors (e.g. allocation failure, file not found, bad formatted).
+ * @note The caller is responsible to call the destory_png method to prevent memory leak.
+ * @note The p_buf shall not be freed by the caller, as it is freed by the destroy_png method.
+ * @see destory_png
+*/
+simple_PNG_p create_png_from_buf(U8* p_buf, U64 buf_length);
+
+/**
  * @brief Destory a PNG structure.
  * 
  * @param[in] p_png The pointer to the PNG struct to destroy.
@@ -117,8 +130,8 @@ int is_png(const char* path);
 /**
  * @brief Loads the content of a file into a buffer. 
  * 
- * @param[in] path          Path to the file.
- * @param[in] p_buf_length  Pointer to be updated to store the buffer's length. 
+ * @param[in] path           Path to the file.
+ * @param[out] p_buf_length  Pointer to be updated to store the buffer's length. 
  * @return      A pointer to the buffer containing the file's content.
  * @exception   Returns NULL on errors (e.g., allocation failure, file not found).
  * @note        The caller is responsible to free the returned pointer to prevent memory leak.
