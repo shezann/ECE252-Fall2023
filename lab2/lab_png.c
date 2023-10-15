@@ -127,6 +127,10 @@ simple_PNG_p create_png_from_buf(U8* p_buf, U64 buf_length) {
 
     // Create the png file.
     simple_PNG_p p_png = malloc(sizeof(struct simple_PNG));
+    if (!p_png) {
+        perror("malloc: failed to allocate memory for p_png.\n");
+        return NULL;
+    }
     p_png->p_png_buffer = p_buf;
     p_png->buf_length = buf_length;
 

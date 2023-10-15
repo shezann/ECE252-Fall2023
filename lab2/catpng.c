@@ -5,9 +5,20 @@ U64 calculate_buffer_size(U32 png_width, U32 png_height) {
 }
 
 simple_PNG_p concatenate_pngs(simple_PNG_p* pngs, U64 arr_size) {
+    // Check inputs
     if (arr_size == 0) {
         return NULL;
+    } else if (arr_size == 1) {
+        return pngs[0];
+    } else {
+        for (int i=0; i<arr_size; i++) {
+            if (pngs[i] == NULL) {
+                perror("One of the pngs is NULL.\n");
+                return NULL;
+            }
+        }
     }
+
     // Allocate a buffer that is big enough to store all the pngs
     U32 width = pngs[0]->p_IHDR->p_data_IHDR->width; /* Assume all pngs of the same width */
     U32 height = 0;

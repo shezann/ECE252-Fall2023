@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -Wall -g -std=c99
 LD = gcc 
 LDFLAGS = -g
-LDLIBS = -lz # link with zlib
+LDLIBS = -lz -lcurl # link with zlib and curl
 
 BUILD_DIRECTORY = obj
 
@@ -34,3 +34,5 @@ $(BUILD_DIRECTORY)/%.o: %.c | obj
 # Create obj directory if it doesn't exist
 obj:
 	mkdir -p $(BUILD_DIRECTORY)
+
+.PHONY: clean all
