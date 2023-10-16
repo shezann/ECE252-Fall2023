@@ -1,9 +1,8 @@
-# Compiler
-CC = gcc
-CFLAGS = -Wall -g -std=c99
-LD = gcc 
-LDFLAGS = -g
-LDLIBS = -lz -lcurl # link with zlib and curl
+CC = gcc 
+CFLAGS = -Wall -std=gnu99 -g
+LD = gcc
+LDFLAGS = -std=gnu99 -g 
+LDLIBS = -lcurl -lz -pthread
 
 BUILD_DIRECTORY = obj
 
@@ -21,7 +20,7 @@ all: paster
 
 # Target: paster
 paster : $(OBJS)
-	$(LD) $(LDLIBS) $(CFLAGS) $^ -o $@
+	$(LD) -o $@ $^ $(LDLIBS) $(CFLAGS)
 
 # Target: clean
 clean:

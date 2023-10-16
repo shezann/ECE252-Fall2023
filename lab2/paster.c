@@ -116,7 +116,9 @@ int main(int argc, char** argv) {
     // Fetch and concatenate the PNGs
     simple_PNG_p p_png = paster(nthreads, image_id);
     if (p_png == NULL) {
-        perror("paster: returned NULL.");
+        perror("paster: returned NULL.\n");
+        // Free the PNG segments
+        cleanup_png_segments();
         return -1;
     }
     write_png(p_png, filename);
