@@ -1,9 +1,9 @@
 #include "urlutils.h"
 
 const char* URL_LIST[NUM_URLS] = {
-    "http://ece252-1.uwaterloo.ca:2530/image?",
-    "http://ece252-2.uwaterloo.ca:2530/image?",
-    "http://ece252-3.uwaterloo.ca:2530/image?"
+    "http://ece252-1.uwaterloo.ca:2520/image?",
+    "http://ece252-2.uwaterloo.ca:2520/image?",
+    "http://ece252-3.uwaterloo.ca:2520/image?"
 };
 
 Recv_buf_p create_recv_buf(void) {
@@ -94,7 +94,7 @@ size_t write_cb_curl(void *p_recv, size_t size, size_t nmemb, void *p_userdata) 
     if (p->size + realsize + 1 > p->max_size) {/* hope this rarely happens */ 
         /* received data is not 0 terminated, add one byte for terminating 0 */
         size_t new_size = p->max_size + max(BUF_INC, realsize + 1);   
-        char *q = realloc(p->buf, new_size);
+        unsigned char *q = realloc(p->buf, new_size);
         if (q == NULL) {
             perror("realloc"); /* out of memory */
             return -1;

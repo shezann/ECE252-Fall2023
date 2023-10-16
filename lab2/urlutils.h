@@ -24,7 +24,7 @@ extern const char* URL_LIST[NUM_URLS]; /* defined in urlutils.c */
  * @brief the struct to store the PNG and the sequence number
 */
 typedef struct recv_buf {
-    char* buf;
+    unsigned char* buf;
     size_t size;
     size_t max_size;
     int seq;
