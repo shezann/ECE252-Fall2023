@@ -2,15 +2,22 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "catpng.h"
 #include "urlutils.h"
 #include "lab_png.h"
+#include "catpng.h"
 
 #define NUM_SEGMENTS 50
 
 #define CONCAT(a, b) a##b
 
+/**
+ * @brief      The struct to hold the PNG segments
+ * @note       The global variable global_PNG_segments is defined here.
+ * @note       This is not thread-safe. You need to use the mutex to make it thread-safe.
+*/
 typedef struct PNG_segments {
     simple_PNG_p p_pngs[NUM_SEGMENTS];  /* Hold all png segments */
     int num_pngs;                       /* Number of png segments fetched. 
@@ -37,6 +44,7 @@ void cleanup_png_segments();
  * @param[in]  arg  The url of the PNG (char*)
  *                  Example: http://ece252-1.uwaterloo.ca:2520/image?img=N
  * @return     NULL
+ * @note       The arg is freed in this function.
 */
 void* fetch_png(void* arg);
 
@@ -50,4 +58,3 @@ void* fetch_png(void* arg);
  * @note     The caller is responsible to call the destory_png method to prevent memory leak.
 */
 simple_PNG_p paster(int nthreads, int image_id);
-
