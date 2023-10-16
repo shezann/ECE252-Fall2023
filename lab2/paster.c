@@ -46,21 +46,23 @@ simple_PNG_p paster(int nthreads, int image_id) {
 
     /* Create threads to fetch the PNGs */
     pthread_t threads[nthreads];
+    int nthreads_created = 0;
     for (int i=0; i<nthreads; i++) {
         // Create a thread to fetch the PNG using different URLs
         char* url = malloc(sizeof(char) * 64);
         sprintf(url, "%simg=%d", URL_LIST[i % NUM_URLS], image_id);
         if (pthread_create(&threads[i], NULL, fetch_png, (void *) url) != 0) {
-            perror("pthread_create: failed to create thread.");
-            return NULL;
+            perror("pthread_create: failed to create more threads.\n");
+            free(url);
+            break;
         }
+        nthreads_created++;
     }
 
     /* Wait for all threads to finish */
-    for (int i=0; i<nthreads; i++) {
+    for (int i=0; i<nthreads_created; i++) {
         if (pthread_join(threads[i], NULL) != 0) {
-            perror("pthread_join: failed to join thread.");
-            return NULL;
+            fprintf(stderr, "pthread_join: failed to join thread %d.\n", i);
         }
     }
     // All threads are finished
