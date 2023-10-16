@@ -68,7 +68,7 @@ void *fetch_png(void *arg)
             }
             else
             {
-                perror("Not enough memory to allocate a new buffer for PNG");
+                perror("malloc: not enough memory to allocate a new buffer for PNG");
             }
         }
 
@@ -91,8 +91,14 @@ simple_PNG_p paster(int nthreads, int image_id)
     curl_init();
 
     /* Create threads to fetch the PNGs */
-    pthread_t threads[nthreads];
-    int nthreads_created = 0;
+    pthread_t *threads = malloc(sizeof(pthread_t) * min(nthreads, 100)); // Allocate 100 threads at a time
+    if (threads == NULL) {
+        perror("malloc: not enough memory to create threads.\n");
+        curl_cleanup();
+        return NULL;
+    }
+
+    int nthreads_created = 0; // Number of threads created successfully. Ideally, it should be equal to nthreads.
     for (int i = 0; i < nthreads; i++)
     {
         // Create a thread to fetch the PNG using different URLs
@@ -105,6 +111,16 @@ simple_PNG_p paster(int nthreads, int image_id)
             break;
         }
         nthreads_created++;
+
+        // Reallocate the threads array if it is full. To prevent from segmentation fault.
+        if (nthreads_created % 100 == 0) {
+            pthread_t *new_threads = realloc(threads, sizeof(pthread_t) * (nthreads_created + 100));
+            if (new_threads == NULL) {
+                perror("realloc: not enough memory to create more threads.\n");
+                break;
+            }
+            threads = new_threads;
+        }
     }
 
     /* Wait for all threads to finish */

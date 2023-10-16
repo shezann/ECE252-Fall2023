@@ -17,6 +17,11 @@
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
 
+#define min(a, b) \
+    ({__typeof__ (a) _a = (a); \
+        __typeof__ (b) _b = (b); \
+        _a < _b ? _a : _b;})
+
 
 extern const char* URL_LIST[NUM_URLS]; /* defined in urlutils.c */
 
