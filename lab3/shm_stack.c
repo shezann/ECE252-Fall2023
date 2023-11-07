@@ -27,45 +27,40 @@
    +---------------+
    | items         | 8 bytes
    +---------------+
-   | items[0]      | 4 bytes
+   | items[0]      | SHM_BUF_SIZE
    +---------------+
-   | items[1]      | 4 bytes
+   | items[1]      | SHM_BUF_SIZE
    +---------------+
-   | ...           | 4 bytes
+   | ...           | SHM_BUF_SIZE
    +---------------+
-   | items[size-1] | 4 bytes
+   | items[size-1] | SHM_BUF_SIZE
    +===============+
 */
-typedef struct int_stack
-{
-    int size;               /* the max capacity of the stack */
-    int pos;                /* position of last item pushed onto the stack */
-    int *items;             /* stack of stored integers */
-} ISTACK;
+
 
 /**
  * @brief calculate the total memory that the struct int_stack needs and
  *        the items[size] needs.
  * @param int size maximum number of integers the stack can hold
- * @return return the sum of ISTACK size and the size of the data that
+ * @return return the sum of RecvStack size and the size of the data that
  *         items points to.
  */
 
 int sizeof_shm_stack(int size)
 {
-    return (sizeof(ISTACK) + sizeof(int) * size);
+    return (sizeof(RecvStack) + SHM_BUF_SIZE * size);
 }
 
 /**
- * @brief initialize the ISTACK member fields.
- * @param ISTACK *p points to the starting addr. of an ISTACK struct
+ * @brief initialize the RecvStack member fields.
+ * @param RecvStack *p points to the starting addr. of an RecvStack struct
  * @param int stack_size max. number of items the stack can hold
  * @return 0 on success; non-zero on failure
  * NOTE:
  * The caller first calls sizeof_shm_stack() to allocate enough memory;
  * then calls the init_shm_stack to initialize the struct
  */
-int init_shm_stack(ISTACK *p, int stack_size)
+int init_shm_stack(RecvStack *p, int stack_size)
 {
     if ( p == NULL || stack_size == 0 ) {
         return 1;
@@ -73,60 +68,18 @@ int init_shm_stack(ISTACK *p, int stack_size)
 
     p->size = stack_size;
     p->pos  = -1;
-    p->items = (int *) ((char *)p + sizeof(ISTACK));
+    p->items = (unsigned char *) ((char *)p + sizeof(RecvStack));
     return 0;
 }
 
-/**
- * @brief create a stack to hold size number of integers and its associated
- *      ISTACK data structure. Put everything in one continous chunk of memory.
- * @param int size maximum number of integers the stack can hold
- * @return NULL if size is 0 or malloc fails
- */
-
-ISTACK *create_stack(int size)
-{
-    int mem_size = 0;
-    ISTACK *pstack = NULL;
-    
-    if ( size == 0 ) {
-        return NULL;
-    }
-
-    mem_size = sizeof_shm_stack(size);
-    pstack = malloc(mem_size);
-
-    if ( pstack == NULL ) {
-        perror("malloc");
-    } else {
-        char *p = (char *)pstack;
-        pstack->items = (int *) (p + sizeof(ISTACK));
-        pstack->size = size;
-        pstack->pos  = -1;
-    }
-
-    return pstack;
-}
-
-/**
- * @brief release the memory
- * @param ISTACK *p the address of the ISTACK data structure
- */
-
-void destroy_stack(ISTACK *p)
-{
-    if ( p != NULL ) {
-        free(p);
-    }
-}
 
 /**
  * @brief check if the stack is full
- * @param ISTACK *p the address of the ISTACK data structure
+ * @param RecvStack *p the address of the RecvStack data structure
  * @return non-zero if the stack is full; zero otherwise
  */
 
-int is_full(ISTACK *p)
+int is_full(RecvStack *p)
 {
     if ( p == NULL ) {
         return 0;
@@ -136,11 +89,11 @@ int is_full(ISTACK *p)
 
 /**
  * @brief check if the stack is empty 
- * @param ISTACK *p the address of the ISTACK data structure
+ * @param RecvStack *p the address of the RecvStack data structure
  * @return non-zero if the stack is empty; zero otherwise
  */
 
-int is_empty(ISTACK *p)
+int is_empty(RecvStack *p)
 {
     if ( p == NULL ) {
         return 0;
@@ -150,12 +103,12 @@ int is_empty(ISTACK *p)
 
 /**
  * @brief push one integer onto the stack 
- * @param ISTACK *p the address of the ISTACK data structure
- * @param int item the integer to be pushed onto the stack 
+ * @param RecvStack *p the address of the RecvStack data structure
+ * @param Recv_buf_p item the integer to be pushed onto the stack 
  * @return 0 on success; non-zero otherwise
  */
 
-int push(ISTACK *p, int item)
+int push(RecvStack *p, Recv_buf_p item)
 {
     if ( p == NULL ) {
         return -1;
@@ -163,7 +116,7 @@ int push(ISTACK *p, int item)
 
     if ( !is_full(p) ) {
         ++(p->pos);
-        p->items[p->pos] = item;
+        deep_copy_recv_buf(item, p->items + p->pos * SHM_BUF_SIZE, SHM_BUF_SIZE);
         return 0;
     } else {
         return -1;
@@ -172,20 +125,27 @@ int push(ISTACK *p, int item)
 
 /**
  * @brief push one integer onto the stack 
- * @param ISTACK *p the address of the ISTACK data structure
+ * @param RecvStack *p the address of the RecvStack data structure
  * @param int *item output parameter to save the integer value 
  *        that pops off the stack 
  * @return 0 on success; non-zero otherwise
  */
 
-int pop(ISTACK *p, int *p_item)
+int pop(RecvStack *p, Recv_buf_p *p_item)
 {
     if ( p == NULL ) {
         return -1;
     }
 
     if ( !is_empty(p) ) {
-        *p_item = p->items[p->pos];
+        // Now only gods know what I am doing here
+        *p_item = create_recv_buf();
+        (*p_item)->buf = (char *) malloc(BUF_SIZE);
+        memcpy((*p_item)->buf,
+            p->items + p->pos * SHM_BUF_SIZE + sizeof(struct recv_buf), 
+            BUF_SIZE
+            );
+
         (p->pos)--;
         return 0;
     } else {

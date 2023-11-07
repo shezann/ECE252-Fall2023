@@ -9,13 +9,18 @@
  * @author yqhuang@uwaterloo.ca
  */
 
-struct int_stack;
+#include "urlutils.h"
+
+typedef struct recv_stack
+{
+    int size;               /* the max capacity of the stack */
+    int pos;                /* position of last item pushed onto the stack */
+    unsigned char* items;   /* stack of stored recv buf */
+} RecvStack;
 
 int sizeof_shm_stack(int size);
-int init_shm_stack(struct int_stack *p, int stack_size);
-struct int_stack *create_stack(int size);
-void destroy_stack(struct int_stack *p);
-int is_full(struct int_stack *p);
-int is_empty(struct int_stack *p);
-int push(struct int_stack *p, int item);
-int pop(struct int_stack *p, int *p_item);
+int init_shm_stack(RecvStack *p, int stack_size);
+int is_full(RecvStack *p);
+int is_empty(RecvStack *p);
+int push(RecvStack *p, Recv_buf_p item);
+int pop(RecvStack *p, Recv_buf_p *p_item);
