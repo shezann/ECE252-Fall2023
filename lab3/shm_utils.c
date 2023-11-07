@@ -86,6 +86,9 @@ void init_shared_mem(int max_stack_size) {
     _detach_shm(&_shared_mem._shmid_recv_stack);
 
     _init_shm(&_shared_mem._shmid_png_count, sizeof(int));
+    _attach_shm(&_shared_mem._shmid_png_count);
+    *((int*) _shared_mem._shmid_png_count._shmaddr) = 0;
+    _detach_shm(&_shared_mem._shmid_png_count);
 }
 
 void cleanup_shared_mem() {
