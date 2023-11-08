@@ -31,7 +31,8 @@ typedef struct _shared_mem {
     _shm_holder_t _shmid_sem_items_counting;   // Track the B - size of the recv stack
                                                // Init to B, increased by consumer, decreased by producer
     _shm_holder_t _shmid_sem_stack_mutex;      // Binary semaphore for accessing the recv stack
-    _shm_holder_t _shmid_sem_png_array_mutex;  // Binary semaphore for accessing the png array and count
+    _shm_holder_t _shmid_sem_png_array_mutex;  // Binary semaphore for accessing the png array
+    _shm_holder_t _shmid_sem_download_mutex;   // Binary semaphore for accessing the downloadc count
     _shm_holder_t _shmid_recv_stack;           // The recv stack to save the received pngs buffers
     _shm_holder_t _shmid_png_array;            // The png array to save the pngs
                                                // The actual array is in the shared memory.
@@ -72,12 +73,15 @@ void cleanup_shared_mem();
  * @param[in] index The index of the png in the png 
  *                  array from 0 to NUM_SEGMENTS - 1
  * @param[in] png The png to add
- * @note THIS FUNCTION IS NOT THREAD SAFE. The caller should 
- *       not be wrting to the same index more than one time.
+ * @return Is all pngs get downloaded
+ *         1 yes
+ *         0 no
+ * @note This function is thread safe. The caller should 
+ *       not be writing to the same index more than one time.
  *       OTHERWISE THERE WILL BE MEMORY LEAK.
  * @note The png array will NOT hold a reference to the png.
 */
-void add_png_to_shm_array(int index, simple_PNG_p png);
+int add_png_to_shm_array(int index, simple_PNG_p png);
 
 /**
  * @brief Push a copy of recv buffer to the recv stack in shared memory

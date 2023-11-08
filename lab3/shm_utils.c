@@ -54,11 +54,13 @@ void init_shared_mem(int max_stack_size) {
     _init_shm(&_shared_mem._shmid_sem_items_counting, sizeof(sem_t));
     _init_shm(&_shared_mem._shmid_sem_stack_mutex, sizeof(sem_t));
     _init_shm(&_shared_mem._shmid_sem_png_array_mutex, sizeof(sem_t));
-    
+    _init_shm(&_shared_mem._shmid_sem_download_mutex, sizeof(sem_t));
+
     _init_shm_sem(&_shared_mem._shmid_sem_spaces_counting, max_stack_size);
     _init_shm_sem(&_shared_mem._shmid_sem_items_counting, 0);
     _init_shm_sem(&_shared_mem._shmid_sem_stack_mutex, 1);
     _init_shm_sem(&_shared_mem._shmid_sem_png_array_mutex, 1);
+    _init_shm_sem(&_shared_mem._shmid_sem_download_mutex, 1);
 
     // Init the png array to be empty
     _init_shm(&_shared_mem._shmid_png_array, NUM_SEGMENTS * sizeof(_shm_holder_t));
@@ -88,6 +90,7 @@ void cleanup_shared_mem() {
     _cleanup_shm(&_shared_mem._shmid_sem_items_counting);
     _cleanup_shm(&_shared_mem._shmid_sem_stack_mutex);
     _cleanup_shm(&_shared_mem._shmid_sem_png_array_mutex);
+    _cleanup_shm(&_shared_mem._shmid_sem_download_mutex);
 
     // Cleanup the png array
     _attach_shm(&_shared_mem._shmid_png_array);
@@ -104,22 +107,45 @@ void cleanup_shared_mem() {
 }
 
 // This is dumb, but I don't know how to do it better
-void add_png_to_shm_array(int index, simple_PNG_p png) {
+int add_png_to_shm_array(int index, simple_PNG_p png) {
+
+    _attach_shm(&_shared_mem._shmid_sem_png_array_mutex);
+    if (sem_wait(_shared_mem._shmid_sem_png_array_mutex._shmaddr) != 0) {
+        perror("sem_wait");
+        abort();
+    }
+    
     // Get the array in the shared memory
     _attach_shm(&_shared_mem._shmid_png_array);
-    // not protected by sems, since shm_holder is only an intance of this process
+    
+    // Check if the array if full
+    int count = 0;
     _shm_holder_p shm_holder = (_shm_holder_p) _shared_mem._shmid_png_array._shmaddr;
-
-    // Init the shared memory for the png at index
-    // This is a dynamic memory
-    _init_shm(&shm_holder[index], png->buf_length);
-    _attach_shm(&shm_holder[index]);
-
-    memcpy(shm_holder[index]._shmaddr, png, png->buf_length);
-
-    _detach_shm(&shm_holder[index]);
+    for (int i = 0; i < NUM_SEGMENTS; i++) {
+        if (i == index) {
+            // Init the shared memory for the png at index
+            // This is a dynamic memory
+            _init_shm(&shm_holder[index], png->buf_length);
+            _attach_shm(&shm_holder[i]);
+            memcpy(shm_holder[index]._shmaddr, png, png->buf_length);
+            count++;
+       } else {
+            _attach_shm(&shm_holder[i]);
+            if (shm_holder[i]._shmid > 0) // Check if the png exists
+                count++;
+       }
+       _attach_shm(&shm_holder[i]);
+    }
 
     _detach_shm(&_shared_mem._shmid_png_array);
+
+    if (sem_post(_shared_mem._shmid_sem_png_array_mutex._shmaddr) != 0) {
+        perror("sem_post");
+        abort();
+    }
+    _detach_shm(&_shared_mem._shmid_sem_png_array_mutex);
+
+    return count >= NUM_SEGMENTS;
 }
 
 void push_recv_buf_to_shm_stack(Recv_buf_p recv_buf) {
@@ -222,8 +248,8 @@ Recv_buf_p pop_recv_buf_from_shm_stack() {
 
 int get_download_segment_index() {
     int res = -1;
-    _attach_shm(&_shared_mem._shmid_sem_png_array_mutex);
-    if (sem_wait(_shared_mem._shmid_sem_png_array_mutex._shmaddr) != 0) {
+    _attach_shm(&_shared_mem._shmid_sem_download_mutex);
+    if (sem_wait(_shared_mem._shmid_sem_download_mutex._shmaddr) != 0) {
         perror("sem_wait");
         abort();
     }
@@ -236,7 +262,7 @@ int get_download_segment_index() {
         abort();
     }
 
-    _detach_shm(&_shared_mem._shmid_sem_png_array_mutex);
+    _detach_shm(&_shared_mem._shmid_sem_download_mutex);
 
     // Check if the index is valid
     if (res >= NUM_SEGMENTS) {
