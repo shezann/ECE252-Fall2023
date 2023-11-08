@@ -33,7 +33,7 @@ typedef struct recv_buf {
     size_t size;
     size_t max_size;
     int seq;
-}* Recv_buf_p;
+} Recv_buf_t , * Recv_buf_p;
 
 
 #define SHM_BUF_SIZE sizeof(struct recv_buf) + BUF_SIZE /* for allocation in shared memory */

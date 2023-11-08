@@ -130,7 +130,6 @@ int push(RecvStack *p, Recv_buf_p item)
  *        that pops off the stack 
  * @return 0 on success; non-zero otherwise
  */
-
 int pop(RecvStack *p, Recv_buf_p *p_item)
 {
     if ( p == NULL ) {
@@ -139,13 +138,16 @@ int pop(RecvStack *p, Recv_buf_p *p_item)
 
     if ( !is_empty(p) ) {
         // Now only gods know what I am doing here
+        Recv_buf_p p_recv_buf = ((Recv_buf_p) (p->items + p->pos * SHM_BUF_SIZE));
         *p_item = create_recv_buf();
-        (*p_item)->buf = (char *) malloc(BUF_SIZE);
+        (*p_item)->buf = (char *) malloc(p_recv_buf->max_size);
         memcpy((*p_item)->buf,
-            p->items + p->pos * SHM_BUF_SIZE + sizeof(struct recv_buf), 
+            p->items + p->pos * SHM_BUF_SIZE + sizeof(Recv_buf_t), 
             BUF_SIZE
             );
-
+        (*p_item)->size = p_recv_buf->size;
+        (*p_item)->max_size = p_recv_buf->max_size;
+        (*p_item)->seq = p_recv_buf->seq;
         (p->pos)--;
         return 0;
     } else {

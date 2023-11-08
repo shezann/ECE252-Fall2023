@@ -94,19 +94,23 @@ Recv_buf_p fetch_url(CURL* curl_handle) {
 }
 
 size_t write_cb_curl(void *p_recv, size_t size, size_t nmemb, void *p_userdata) {
-        size_t realsize = size * nmemb;
+    size_t realsize = size * nmemb;
     Recv_buf_p p = (Recv_buf_p) p_userdata;
  
     if (p->size + realsize + 1 > p->max_size) {/* hope this rarely happens */ 
         /* received data is not 0 terminated, add one byte for terminating 0 */
-        size_t new_size = p->max_size + max(BUF_INC, realsize + 1);   
-        unsigned char *q = realloc(p->buf, new_size);
-        if (q == NULL) {
-            perror("realloc"); /* out of memory */
-            return -1;
-        }
-        p->buf = q;
-        p->max_size = new_size;
+        // size_t new_size = p->max_size + max(BUF_INC, realsize + 1);   
+        // unsigned char *q = realloc(p->buf, new_size);
+        // if (q == NULL) {
+        //     perror("realloc"); /* out of memory */
+        //     return -1;
+        // }
+        // p->buf = q;
+        // p->max_size = new_size;
+
+        fprintf(stderr, "write_cb_curl: recieved %lu bytes, \
+                but buffer size is %lu.\n", realsize, p->max_size);
+        return -1;
     }
 
     memcpy(p->buf + p->size, p_recv, realsize); /*copy data from libcurl*/
@@ -137,8 +141,7 @@ void deep_copy_recv_buf(Recv_buf_p recv_buf, unsigned char* dest_buf, size_t des
         return;
     }
 
-    memcpy(dest_buf, recv_buf, sizeof(Recv_buf_p));
-    memcpy(dest_buf + sizeof(Recv_buf_p), recv_buf->buf, recv_buf->size);
-    ((Recv_buf_p) dest_buf)->max_size = dest_size - sizeof(Recv_buf_p);
-    ((Recv_buf_p) dest_buf)->buf = dest_buf + sizeof(Recv_buf_p);
+    memcpy(dest_buf, recv_buf, sizeof(Recv_buf_t));
+    memcpy(dest_buf + sizeof(Recv_buf_t), recv_buf->buf, recv_buf->size);
+    ((Recv_buf_p) dest_buf)->buf = dest_buf + sizeof(Recv_buf_t);
 }
