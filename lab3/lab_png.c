@@ -54,21 +54,85 @@ void write_png(simple_PNG_p p_png, const char* filename) {
 }
 
 simple_PNG_p create_png(char* path) {
-    if (!is_png(path)) {
-        printf("%s is not a png file.\n", path);
-        return NULL;
-    }
-    // Create an empty png file and initialize all its data
-    simple_PNG_p p_png = malloc(sizeof(struct simple_PNG));
+    // if (!is_png(path)) {
+    //     printf("%s is not a png file.\n", path);
+    //     return NULL;
+    // }
+    // // Create an empty png file and initialize all its data
+    // simple_PNG_p p_png = malloc(sizeof(struct simple_PNG));
 
-    p_png->buf_length = 0;
-    p_png->p_png_buffer = NULL;
-    p_png->p_png_buffer = read_buf(path, &(p_png->buf_length));
-    if (!p_png->p_png_buffer) {
-        printf("Error when reading the PNG.\n");
-        destroy_png(p_png);
+    // p_png->buf_length = 0;
+    // p_png->p_png_buffer = NULL;
+    // p_png->p_png_buffer = read_buf(path, &(p_png->buf_length));
+
+    // New insertion
+    U64 buf_length = 0;
+    U8* p_buf = read_buf(path, &buf_length);
+    if (p_buf == NULL) {
+        printf("Error when reading the PNG file.\n");
         return NULL;
     }
+
+    simple_PNG_p p_png = create_png_from_buf(p_buf, buf_length);
+    if (p_png == NULL) {
+        free(p_buf);
+        return NULL;
+    }
+    return p_png;
+
+    // if (!p_png->p_png_buffer) {
+    //     printf("Error when reading the PNG.\n");
+    //     destroy_png(p_png);
+    //     return NULL;
+    // }
+
+    // U8* p_chunk_start = p_png->p_png_buffer + PNG_SIG_SIZE;
+    // U64 buf_size = p_png->buf_length - PNG_SIG_SIZE;
+
+    // // Read the raw chunks
+    // p_png->p_IHDR = create_chunk();
+    // if (!read_chunk(p_chunk_start, buf_size, p_png->p_IHDR, &p_chunk_start, &buf_size)) {
+    //     printf("Error when reading the IHDR chunk.\n");
+    //     destroy_png(p_png);
+    //     return NULL;
+    // }
+    // p_png->p_IDAT = create_chunk();
+    // if (!read_chunk(p_chunk_start, buf_size, p_png->p_IDAT, &p_chunk_start, &buf_size)) {
+    //     printf("Error when reading the IDAT chunk.\n");
+    //     destroy_png(p_png);
+    //     return NULL;
+    // }
+    // p_png->p_IEND = create_chunk();
+    // if (!read_chunk(p_chunk_start, buf_size, p_png->p_IEND, &p_chunk_start, &buf_size)) {
+    //     printf("Error when reading the IEND chunk.\n");
+    //     destroy_png(p_png);
+    //     return NULL;
+    // }
+
+    // return p_png;
+
+}
+
+simple_PNG_p create_png_from_buf(U8* p_buf, U64 buf_length) {
+    if (buf_length < PNG_SIG_SIZE) {
+        perror("The buffer is too small to be a png file.\n");
+        return NULL;
+    }
+    for (int i=0; i<PNG_SIG_SIZE; i++) {
+        if (p_buf[i] != PNG_SIGNITURE[i]) {
+            perror("The buffer is not a png file.\n");
+            return NULL;
+        }
+    }
+
+    // Create the png file.
+    simple_PNG_p p_png = malloc(sizeof(struct simple_PNG));
+    if (!p_png) {
+        perror("malloc: failed to allocate memory for p_png.\n");
+        return NULL;
+    }
+    p_png->p_png_buffer = p_buf;
+    p_png->buf_length = buf_length;
 
     U8* p_chunk_start = p_png->p_png_buffer + PNG_SIG_SIZE;
     U64 buf_size = p_png->buf_length - PNG_SIG_SIZE;
@@ -94,7 +158,6 @@ simple_PNG_p create_png(char* path) {
     }
 
     return p_png;
-
 }
 
 void destroy_png(simple_PNG_p p_png) {

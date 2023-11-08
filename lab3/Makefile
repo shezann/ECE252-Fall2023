@@ -7,7 +7,7 @@ LDLIBS = -lcurl -lz -pthread
 BUILD_DIRECTORY = obj
 
 # Source files
-SRCS = $(filter-out test.c, $(wildcard *.c)
+SRCS = $(filter-out test.c, $(wildcard *.c))
 
 # Object files
 OBJS = $(addprefix $(BUILD_DIRECTORY)/, $(SRCS:.c=.o))
@@ -21,6 +21,9 @@ all: paster2
 # Target: paster
 paster2 : $(OBJS)
 	$(LD) -o $@ $^ $(LDLIBS) $(CFLAGS)
+
+test: test.c $(filter-out $(addprefix $(BUILD_DIRECTORY)/, paster% consumer% producer%), $(OBJS))
+	$(CC) -o $@ $^ $(LDLIBS) $(CFLAGS)
 
 # Target: clean
 clean:

@@ -186,7 +186,7 @@ simple_PNG_p* get_all_png_from_shm_array() {
 
         void* heap_buf = malloc(shm_holder[i]._size);
         memcpy(heap_buf, shm_holder[i]._shmaddr, shm_holder[i]._size);
-        pngs[i] = create_png_from_buffer(heap_buf, shm_holder[i]._size);
+        pngs[i] = (simple_PNG_p) create_png_from_buf(heap_buf, shm_holder[i]._size);
         
         _detach_shm(&shm_holder[i]);
     }
@@ -243,7 +243,7 @@ int get_download_segment_index() {
         abort();
     }
     _attach_shm(&_shared_mem._shmid_png_count);
-    int res = (*((int*) _shared_mem._shmid_png_count._shmaddr))++;
+    res = (*((int*) _shared_mem._shmid_png_count._shmaddr))++;
     _detach_shm(&_shared_mem._shmid_png_count);
 
     if (sem_post(_shared_mem._shmid_sem_png_array_mutex._shmaddr) != 0) {
