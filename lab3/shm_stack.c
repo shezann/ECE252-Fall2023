@@ -143,7 +143,7 @@ int pop(RecvStack *p, Recv_buf_p *p_item)
         (*p_item)->buf = (unsigned char *) malloc(p_recv_buf->max_size);
         memcpy((*p_item)->buf,
             p->items + p->pos * SHM_BUF_SIZE + sizeof(Recv_buf_t), 
-            BUF_SIZE
+            p_recv_buf->max_size
             );
         (*p_item)->size = p_recv_buf->size;
         (*p_item)->max_size = p_recv_buf->max_size;

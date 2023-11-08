@@ -136,12 +136,12 @@ size_t header_cb_curl(char *p_recv, size_t size, size_t nmemb, void *userdata)
 }
 
 void deep_copy_recv_buf(Recv_buf_p recv_buf, unsigned char* dest_buf, size_t dest_size) {
-    if (recv_buf->size + sizeof(Recv_buf_p) > dest_size) {
+    if (recv_buf->max_size + sizeof(Recv_buf_t) > dest_size) {
         perror("deep_copy_recv_buf: dest_size is too small.");
         return;
     }
 
     memcpy(dest_buf, recv_buf, sizeof(Recv_buf_t));
-    memcpy(dest_buf + sizeof(Recv_buf_t), recv_buf->buf, recv_buf->size);
+    memcpy(dest_buf + sizeof(Recv_buf_t), recv_buf->buf, recv_buf->max_size);
     ((Recv_buf_p) dest_buf)->buf = dest_buf + sizeof(Recv_buf_t);
 }

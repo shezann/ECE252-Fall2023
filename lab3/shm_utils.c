@@ -55,8 +55,8 @@ void init_shared_mem(int max_stack_size) {
     _init_shm(&_shared_mem._shmid_sem_stack_mutex, sizeof(sem_t));
     _init_shm(&_shared_mem._shmid_sem_png_array_mutex, sizeof(sem_t));
     
-    _init_shm_sem(&_shared_mem._shmid_sem_spaces_counting, 0);
-    _init_shm_sem(&_shared_mem._shmid_sem_items_counting, max_stack_size);
+    _init_shm_sem(&_shared_mem._shmid_sem_spaces_counting, max_stack_size);
+    _init_shm_sem(&_shared_mem._shmid_sem_items_counting, 0);
     _init_shm_sem(&_shared_mem._shmid_sem_stack_mutex, 1);
     _init_shm_sem(&_shared_mem._shmid_sem_png_array_mutex, 1);
 
@@ -137,7 +137,6 @@ void push_recv_buf_to_shm_stack(Recv_buf_p recv_buf) {
         perror("sem_wait");
         abort();
     }
-
     // Push the recv buffer to the stack
     _attach_shm(&_shared_mem._shmid_recv_stack);
     push((RecvStack*) _shared_mem._shmid_recv_stack._shmaddr, recv_buf);
