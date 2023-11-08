@@ -13,7 +13,7 @@ void _init_shm(_shm_holder_p shm_holder, size_t size) {
 }
 
 void _cleanup_shm(_shm_holder_p shm_holder) {
-    if (shm_holder->_shmid != 0) {
+    if (shm_holder->_shmid > 0) {
         if (shmctl(shm_holder->_shmid, IPC_RMID, NULL) == -1) {
             perror("shmctl");
             abort();
@@ -43,15 +43,6 @@ void _init_shm_sem(_shm_holder_p shm_holder, int value) {
     _attach_shm(shm_holder);
     if (sem_init(shm_holder->_shmaddr, 1, value) != 0) {
         perror("sem_init");
-        abort();
-    }
-    _detach_shm(shm_holder);
-}
-
-void _cleanup_shm_sem(_shm_holder_p shm_holder) {
-    _attach_shm(shm_holder);
-    if (sem_destroy(shm_holder->_shmaddr) != 0) {
-        perror("sem_destroy");
         abort();
     }
     _detach_shm(shm_holder);
@@ -93,11 +84,6 @@ void init_shared_mem(int max_stack_size) {
 
 void cleanup_shared_mem() {
     // Cleanup the semaphores
-    _cleanup_shm_sem(&_shared_mem._shmid_sem_spaces_counting);
-    _cleanup_shm_sem(&_shared_mem._shmid_sem_items_counting);
-    _cleanup_shm_sem(&_shared_mem._shmid_sem_stack_mutex);
-    _cleanup_shm_sem(&_shared_mem._shmid_sem_png_array_mutex);
-
     _cleanup_shm(&_shared_mem._shmid_sem_spaces_counting);
     _cleanup_shm(&_shared_mem._shmid_sem_items_counting);
     _cleanup_shm(&_shared_mem._shmid_sem_stack_mutex);

@@ -16,14 +16,15 @@ int main(int argc, char* argv[]) {
             printf("Parent: forked child %d.\n", pid);
         } else if (pid == 0) {
             // child
-            Recv_buf_p p_recv_buf = create_recv_buf();
-            p_recv_buf->max_size = 512;
-            p_recv_buf->size = 7;
-            p_recv_buf->seq = 0;
-            p_recv_buf->buf = malloc(p_recv_buf->max_size);
-            sprintf((char *)p_recv_buf->buf, "child %d", getpid());
-            push_recv_buf_to_shm_stack(p_recv_buf);
-            return 0;
+            printf("Child: forked child %d.\n", i);
+            // Recv_buf_p p_recv_buf = create_recv_buf();
+            // p_recv_buf->max_size = 512;
+            // p_recv_buf->size = 7;
+            // p_recv_buf->seq = 0;
+            // p_recv_buf->buf = malloc(p_recv_buf->max_size);
+            // sprintf((char *)p_recv_buf->buf, "child %d", getpid());
+            // push_recv_buf_to_shm_stack(p_recv_buf);
+            exit(0);
         } else {
             perror("fork");
             abort();
@@ -33,12 +34,12 @@ int main(int argc, char* argv[]) {
     // Wait for all children to finish
     int status;
     pid_t wpid;
-    while ((wpid = wait(&status)) > 0);
-
     for (int i=0; i<NUM_ITEMS; i++) {
-        Recv_buf_p p_recv_buf = pop_recv_buf_from_shm_stack();
-        printf("Parent: popped %s.\n", p_recv_buf->buf);
-        destroy_recv_buf(p_recv_buf);
+        wpid = wait(&status);
+        printf("Parent: child exited: %d\n", wpid);
+        // Recv_buf_p p_recv_buf = pop_recv_buf_from_shm_stack();
+        // printf("Parent: popped %s.\n", p_recv_buf->buf);
+        // destroy_recv_buf(p_recv_buf);
     }
 
     cleanup_shared_mem();
