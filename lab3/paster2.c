@@ -1,5 +1,6 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include "urlutils.h"
 #include "shm_utils.h"
@@ -15,6 +16,10 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Usage: %s <B> <P> <C> <X> <N>\n", argv[0]);
         exit(1);
     }
+
+    // Measure execution time
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
 
     int B = atoi(argv[1]); // The max size of the recv stack
     int P = atoi(argv[2]); // The number of producers
@@ -86,6 +91,11 @@ int main(int argc, char* argv[]) {
     destroy_png(p_png);
 
     cleanup_shared_mem();
+
+    // Measure end time
+    gettimeofday(&end, NULL);
+    double execution_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
+    printf("paster2 execution time: %.2f seconds\n", execution_time);
 
     return 0;
 }

@@ -3,6 +3,9 @@
 void consume(size_t time_to_sleep) {
     while (1) {
         sleep(time_to_sleep);
+        #ifdef DEBUG
+        printf("Consumer: woke up: %d\n", getpid());
+        #endif
         // Get the data
         Recv_buf_p p_recv_buf = pop_recv_buf_from_shm_stack();
 
@@ -17,12 +20,19 @@ void consume(size_t time_to_sleep) {
 
         destroy_png(p_png);
         destroy_recv_buf(p_recv_buf);
+
+        #ifdef DEBUG
+        printf("Consumer: sleeped: %d\n", getpid());
+        #endif
     }
 
 }
 
 void produce(char* baseurl, int image_id) {
     while (1) {
+        #ifdef DEBUG
+        printf("Producer: woke up: %d\n", getpid());
+        #endif
         int image_part = get_download_segment_index();
         if (image_part == -1) {
             exit(0);
