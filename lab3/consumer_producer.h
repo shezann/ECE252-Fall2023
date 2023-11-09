@@ -1,6 +1,7 @@
 #pragma once
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "urlutils.h"
 #include "lab_png.h"
@@ -8,4 +9,4 @@
 
 void consume(size_t time_to_sleep);
 
-void produce(char* baseurl, int image_id);
+void produce(const char* baseurl, int image_id);

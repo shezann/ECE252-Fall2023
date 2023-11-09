@@ -3,7 +3,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 
-#define NUM_ITEMS 4
+#define NUM_ITEMS 10
 
 int main(int argc, char* argv[]) {
     init_shared_mem(NUM_ITEMS, 0);

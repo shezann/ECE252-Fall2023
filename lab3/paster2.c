@@ -8,9 +8,6 @@
 #include "catpng.h"
 #include "consumer_producer.h"
 
-// Comment this out
-#define DEBUG
-
 int main(int argc, char* argv[]) {
     if (argc != 6) {
         fprintf(stderr, "Usage: %s <B> <P> <C> <X> <N>\n", argv[0]);
@@ -27,6 +24,10 @@ int main(int argc, char* argv[]) {
     int X = atoi(argv[4]); // The time in milliseconds for the consumer to sleep
     int N = atoi(argv[5]); // The image id
 
+    B = min(B, 9);
+    P = min(P, 50);
+    C = min(C, 50);
+
     #ifdef DEBUG
     printf("B: %d\n", B);
     printf("P: %d\n", P);
@@ -34,6 +35,8 @@ int main(int argc, char* argv[]) {
     printf("X: %d\n", X);
     printf("N: %d\n", N);
     #endif
+
+    curl_init();
 
     init_shared_mem(B, C);
 
@@ -43,14 +46,15 @@ int main(int argc, char* argv[]) {
         if (pid > 0) {
             // parent
             #ifdef DEBUG
-            printf("Parent: forked child %d.\n", pid);
+            printf("Parent: forked producer child %d.\n", pid);
             #endif
         } else if (pid == 0) {
             // child
             produce(URL_LIST[i % NUM_URLS], N);
+            exit(0);
         } else {
             perror("fork");
-            abort();
+            break;
         }
     }
 
@@ -58,28 +62,31 @@ int main(int argc, char* argv[]) {
     for (int i=0; i<C; i++) {
         pid_t pid = fork();
         if (pid > 0) {
-            #ifdef DEBUG
-            printf("Parent: forked child %d.\n", pid);
-            #endif
             // parent
+            #ifdef DEBUG
+            printf("Parent: forked consumer child %d.\n", pid);
+            #endif
         } else if (pid == 0) {
             // child
             consume(X);
+            exit(0);
         } else {
             perror("fork");
-            abort();
+            break;
         }
     }
-
     // Wait for all children to finish
     int status;
     pid_t wpid;
-    for (int i=0; i<P+C; i++) {
+    for (int i=0; i<C+P; i++) {
         wpid = wait(&status);
         #ifdef DEBUG
         printf("Parent: child exited: %d\n", wpid);
         #endif
     }
+    #ifdef DEBUG
+    printf("Parent: all children exited\n");
+    #endif
     simple_PNG_p* all_pngs = get_all_png_from_shm_array();
     simple_PNG_p p_png = concatenate_pngs(all_pngs, NUM_SEGMENTS);
     if (p_png == NULL) {
@@ -91,6 +98,8 @@ int main(int argc, char* argv[]) {
     destroy_png(p_png);
 
     cleanup_shared_mem();
+
+    curl_cleanup();
 
     // Measure end time
     gettimeofday(&end, NULL);

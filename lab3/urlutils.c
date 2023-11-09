@@ -1,9 +1,9 @@
 #include "urlutils.h"
 
 const char* URL_LIST[NUM_URLS] = {
-    "http://ece252-1.uwaterloo.ca:2520/image?",
-    "http://ece252-2.uwaterloo.ca:2520/image?",
-    "http://ece252-3.uwaterloo.ca:2520/image?"
+    "http://ece252-1.uwaterloo.ca:2530/image?",
+    "http://ece252-2.uwaterloo.ca:2530/image?",
+    "http://ece252-3.uwaterloo.ca:2530/image?"
 };
 
 Recv_buf_p create_recv_buf(void) {
@@ -41,7 +41,7 @@ void curl_cleanup(void) {
     curl_global_cleanup();
 }
 
-CURL* get_handle(char* url) {
+CURL* get_handle(const char* url) {
     CURL *curl_handle = curl_easy_init();
 
     if (curl_handle == NULL) {
@@ -64,7 +64,7 @@ CURL* get_handle(char* url) {
     return curl_handle;
 }
 
-CURL *get_image_url_handle(char* base_url, int image_id, int image_part) {
+CURL *get_image_url_handle(const char* base_url, int image_id, int image_part) {
     char url[128];
     sprintf(url, "%simg=%d&part=%d", base_url, image_id, image_part);
     return get_handle(url);
@@ -85,7 +85,7 @@ Recv_buf_p fetch_url(CURL* curl_handle) {
     CURLcode res = curl_easy_perform(curl_handle);
 
     if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        // fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
         destroy_recv_buf(p_recv_buf);
         return NULL;
     }
