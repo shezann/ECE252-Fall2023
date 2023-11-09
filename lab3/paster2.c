@@ -9,48 +9,67 @@
 #include <string.h>
 #include <sys/time.h>
 
-// Constants for shared memory and semaphore
 #define SHM_KEY 1234
 #define SEM_KEY 5678
 
-// Define your data structures and synchronization mechanisms here
+// Buffer data structure
+typedef struct
+{
+    int buffer[10]; // Example buffer size of 10
+    int in;         // Index for next item produced
+    int out;        // Index for next item consumed
+} shared_data;
 
-// Function to create shared memory
-int create_shared_memory(int size) {
-    int shmid = shmget(SHM_KEY, size, IPC_CREAT | 0666);
-    if (shmid == -1) {
-        perror("shmget");
+// Union for semaphore operations
+union semun
+{
+    int val;
+    struct semid_ds *buf;
+    unsigned short *array;
+};
+
+// Semaphore operation function
+void sem_op(int semid, int semnum, int val)
+{
+    struct sembuf op;
+    op.sem_num = semnum;
+    op.sem_op = val;
+    op.sem_flg = 0;
+    if (semop(semid, &op, 1) == -1)
+    {
+        perror("semop");
         exit(1);
     }
-    return shmid;
 }
 
-// Function to create a semaphore
-int create_semaphore(int initial_value) {
-    int semid = semget(SEM_KEY, 1, IPC_CREAT | IPC_EXCL | 0666);
-    if (semid == -1) {
-        perror("semget");
-        exit(1);
+// Producer function
+void producer(int semid, shared_data *shm, int X)
+{
+    for (int i = 0; i < X; i++)
+    {
+        sem_op(semid, 0, -1);         // Wait on empty
+        shm->buffer[shm->in] = i;     // Produce item
+        shm->in = (shm->in + 1) % 10; // Circular buffer
+        sem_op(semid, 1, 1);          // Signal full
     }
-
-    // Set the initial value of the semaphore
-    union semun {
-        int val;
-        struct semid_ds *buf;
-        unsigned short *array;
-    } semopts;
-
-    semopts.val = initial_value;
-    if (semctl(semid, 0, SETVAL, semopts) == -1) {
-        perror("semctl");
-        exit(1);
-    }
-
-    return semid;
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 6) {
+// Consumer function
+void consumer(int semid, shared_data *shm, int X)
+{
+    for (int i = 0; i < X; i++)
+    {
+        sem_op(semid, 1, -1);             // Wait on full
+        int item = shm->buffer[shm->out]; // Consume item
+        shm->out = (shm->out + 1) % 10;   // Circular buffer
+        sem_op(semid, 0, 1);              // Signal empty
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc != 6)
+    {
         fprintf(stderr, "Usage: %s <B> <P> <C> <X> <N>\n", argv[0]);
         exit(1);
     }
@@ -61,68 +80,99 @@ int main(int argc, char *argv[]) {
     int X = atoi(argv[4]);
     int N = atoi(argv[5]);
 
-    // Declare shmid and semid
-    int shmid, semid;
+    // Create shared memory
+    int shmid = shmget(SHM_KEY, sizeof(shared_data), IPC_CREAT | 0666);
+    if (shmid == -1)
+    {
+        perror("shmget");
+        exit(1);
+    }
 
-    // Implement your producer-consumer logic here
-    
+    // Attach shared memory
+    shared_data *shmaddr = shmat(shmid, NULL, 0);
+    if (shmaddr == (void *)-1)
+    {
+        perror("shmat");
+        exit(1);
+    }
+
+    // Initialize shared memory
+    shmaddr->in = 0;
+    shmaddr->out = 0;
+
+    // Create semaphores
+    int semid = semget(SEM_KEY, 2, IPC_CREAT | 0666);
+    if (semid == -1)
+    {
+        perror("semget");
+        exit(1);
+    }
+
+    // Initialize semaphores
+    union semun semopts;
+    semopts.val = 10; // Initial value for empty slots
+    if (semctl(semid, 0, SETVAL, semopts) == -1)
+    {
+        perror("semctl");
+        exit(1);
+    }
+
+    semopts.val = 0; // Initial value for full slots
+    if (semctl(semid, 1, SETVAL, semopts) == -1)
+    {
+        perror("semctl");
+        exit(1);
+    }
 
     // Measure execution time
     struct timeval start, end;
     gettimeofday(&start, NULL);
 
-    // Your code for creating processes, shared memory, semaphores, and logic goes here
-    pid_t producer_pids[P];
-    pid_t consumer_pids[C];
-
-    // Create processes, e.g., producers and consumers
     // Fork producer processes
-    for (int i = 0; i < P; i++) {
+    for (int i = 0; i < P; i++)
+    {
         pid_t pid = fork();
-
-        if (pid == 0) {
-            // This is a producer process
-            // Implement producer logic
+        if (pid == 0)
+        {
+            producer(semid, shmaddr, X);
             exit(0);
-        } else if (pid > 0) {
-            producer_pids[i] = pid;
-        } else {
+        }
+        else if (pid < 0)
+        {
             perror("fork");
             exit(1);
         }
     }
 
     // Fork consumer processes
-    for (int i = 0; i < C; i++) {
+    for (int i = 0; i < C; i++)
+    {
         pid_t pid = fork();
-
-        if (pid == 0) {
-            // This is a consumer process
-            // Implement consumer logic
+        if (pid == 0)
+        {
+            consumer(semid, shmaddr, X);
             exit(0);
-        } else if (pid > 0) {
-            consumer_pids[i] = pid;
-        } else {
+        }
+        else if (pid < 0)
+        {
             perror("fork");
             exit(1);
         }
     }
 
-
     // Wait for all child processes to finish
-    for (int i = 0; i < P; i++) {
-        wait(NULL);
-    }
-    for (int i = 0; i < C; i++) {
-        wait(NULL);
-    }
+    while (wait(NULL) > 0)
+        ;
 
-    // Measure end time
+    // Measure end time./paster2 2 1 3 10 1
     gettimeofday(&end, NULL);
     double execution_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1e6;
-    printf("paster2 execution time: %.2f seconds\n", execution_time);
+    printf("Execution time: %.2f seconds\n", execution_time);
 
-    // Cleanup and release resources, such as shared memory and semaphores
+    // Detach from shared memory
+    shmdt(shmaddr);
+
+    // Remove shared memory and semaphores
     shmctl(shmid, IPC_RMID, NULL);
     semctl(semid, 0, IPC_RMID);
 

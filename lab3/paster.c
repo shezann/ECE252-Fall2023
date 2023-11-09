@@ -92,7 +92,8 @@ simple_PNG_p paster(int nthreads, int image_id)
 
     /* Create threads to fetch the PNGs */
     pthread_t *threads = malloc(sizeof(pthread_t) * min(nthreads, 100)); // Allocate 100 threads at a time
-    if (threads == NULL) {
+    if (threads == NULL)
+    {
         perror("malloc: not enough memory to create threads.\n");
         curl_cleanup();
         return NULL;
@@ -113,9 +114,11 @@ simple_PNG_p paster(int nthreads, int image_id)
         nthreads_created++;
 
         // Reallocate the threads array if it is full. To prevent from segmentation fault.
-        if (nthreads_created % 100 == 0) {
+        if (nthreads_created % 100 == 0)
+        {
             pthread_t *new_threads = realloc(threads, sizeof(pthread_t) * (nthreads_created + 100));
-            if (new_threads == NULL) {
+            if (new_threads == NULL)
+            {
                 perror("realloc: not enough memory to create more threads.\n");
                 break;
             }
@@ -145,63 +148,63 @@ simple_PNG_p paster(int nthreads, int image_id)
     return p_png;
 }
 
-int main(int argc, char **argv)
-{
-    int c;            // Used for getopt
-    int nthreads = 1; // Default number of threads
-    int image_id = 1; // Default image id
+// int main(int argc, char **argv)
+// {
+//     int c;            // Used for getopt
+//     int nthreads = 1; // Default number of threads
+//     int image_id = 1; // Default image id
 
-    char *str = "option requires an argument"; // Used for error message
-    char *filename = "all.png";                // Default filename
+//     char *str = "option requires an argument"; // Used for error message
+//     char *filename = "all.png";                // Default filename
 
-    // Parse the command line arguments
-    while ((c = getopt(argc, argv, "t:n:")) != -1)
-    {
-        switch (c)
-        {
-        case 't': // Number of threads
-            nthreads = strtoul(optarg, NULL, 10);
-            if (nthreads <= 0)
-            {
-                fprintf(stderr, "%s: %s > 0 -- 't'\n", argv[0], str);
-                // Free the PNG segments
-                cleanup_png_segments();
-                return -1;
-            }
-            break;
-        case 'n': // Image id
-            image_id = strtoul(optarg, NULL, 10);
-            if (image_id <= 0 || image_id > 3)
-            {
-                fprintf(stderr, "%s: %s 1, 2, or 3 -- 'n'\n", argv[0], str);
-                // Free the PNG segments
-                cleanup_png_segments();
-                return -1;
-            }
-            break;
-        default: // Invalid option
-            printf("Usage: %s [-t <number of threads>] [-n <image number>]\n", argv[0]);
-            // Free the PNG segments
-            cleanup_png_segments();
-            return -1;
-        }
-    }
-    // Fetch and concatenate the PNGs
-    simple_PNG_p p_png = paster(nthreads, image_id);
-    if (p_png == NULL)
-    {
-        perror("paster: returned NULL.\n");
-        // Free the PNG segments
-        cleanup_png_segments();
-        return -1;
-    }
-    write_png(p_png, filename);
+//     // Parse the command line arguments
+//     while ((c = getopt(argc, argv, "t:n:")) != -1)
+//     {
+//         switch (c)
+//         {
+//         case 't': // Number of threads
+//             nthreads = strtoul(optarg, NULL, 10);
+//             if (nthreads <= 0)
+//             {
+//                 fprintf(stderr, "%s: %s > 0 -- 't'\n", argv[0], str);
+//                 // Free the PNG segments
+//                 cleanup_png_segments();
+//                 return -1;
+//             }
+//             break;
+//         case 'n': // Image id
+//             image_id = strtoul(optarg, NULL, 10);
+//             if (image_id <= 0 || image_id > 3)
+//             {
+//                 fprintf(stderr, "%s: %s 1, 2, or 3 -- 'n'\n", argv[0], str);
+//                 // Free the PNG segments
+//                 cleanup_png_segments();
+//                 return -1;
+//             }
+//             break;
+//         default: // Invalid option
+//             printf("Usage: %s [-t <number of threads>] [-n <image number>]\n", argv[0]);
+//             // Free the PNG segments
+//             cleanup_png_segments();
+//             return -1;
+//         }
+//     }
+//     // Fetch and concatenate the PNGs
+//     simple_PNG_p p_png = paster(nthreads, image_id);
+//     if (p_png == NULL)
+//     {
+//         perror("paster: returned NULL.\n");
+//         // Free the PNG segments
+//         cleanup_png_segments();
+//         return -1;
+//     }
+//     write_png(p_png, filename);
 
-    // Free the new png
-    destroy_png(p_png);
+//     // Free the new png
+//     destroy_png(p_png);
 
-    // Free the PNG segments
-    cleanup_png_segments();
+//     // Free the PNG segments
+//     cleanup_png_segments();
 
-    return 0;
-}
+//     return 0;
+// }
