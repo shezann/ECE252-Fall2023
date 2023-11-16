@@ -13,7 +13,8 @@
 #include "lab_png.h"
 #include "shm_stack.h"
 #include "urlutils.h"
-#include "paster.h"
+
+#define NUM_SEGMENTS 50
 
 typedef struct _shm_holder {
     int _shmid;         // The shared memory id
@@ -39,6 +40,8 @@ typedef struct _shared_mem {
                                                // The array is of size NUM_SEGMENTS * _shm_holder_t.
                                                // The actual buffer of the pngs are dynamically allocated in shared memory
     _shm_holder_t _shmid_png_count;            // The number of pngs received and the next index to download
+    _shm_holder_t _num_consumers;               // The number of consumers
+    _shm_holder_t _downloaded_count;            // The number of pngs downloaded
 } _shared_mem_t, *_shared_mem_p;
 
 extern _shared_mem_t _shared_mem;
@@ -55,12 +58,15 @@ void _init_shm_sem(_shm_holder_p shm_holder, int value);
 
 void _cleanup_shm_sem(_shm_holder_p shm_holder);
 
+int _is_all_png_downloaded();
+
 /**
  * @brief Initialize the shared memory table for all processes
  * @param[in] max_stack_size The max size of the recv stack
+ * @param[in] num_consumers The number of consumers
  * @note  This should be initilized in the main process before fork
 */
-void init_shared_mem(int max_stack_size);
+void init_shared_mem(int max_stack_size, int num_consumers);
 
 /**
  * @brief Cleanup the shared memory table for all processes
@@ -74,14 +80,14 @@ void cleanup_shared_mem();
  *                  array from 0 to NUM_SEGMENTS - 1
  * @param[in] png The png to add
  * @return Is all pngs get downloaded
- *         1 yes
- *         0 no
+ *       @retval  1 yes
+ *       @retval  0 no
  * @note This function is thread safe. The caller should 
  *       not be writing to the same index more than one time.
  *       OTHERWISE THERE WILL BE MEMORY LEAK.
  * @note The png array will NOT hold a reference to the png.
 */
-int add_png_to_shm_array(int index, simple_PNG_p png);
+void add_png_to_shm_array(int index, simple_PNG_p png);
 
 /**
  * @brief Push a copy of recv buffer to the recv stack in shared memory
@@ -105,7 +111,9 @@ simple_PNG_p* get_all_png_from_shm_array();
 
 /**
  * @brief Pop a recv buffer from the recv stack in shared memory
- * @return The DYNAMICALLY ALLOCATED COPY IN HEAP of the recv buffer
+ * @return 
+ *     @retval != NULL: The DYNAMICALLY ALLOCATED COPY IN HEAP of the recv buffer;
+ *     @retval == NULL: The consumer should exit
  * @note This function is thread safe. The process will block 
  *       if the recv stack is empty and wait for the producer to
  *       push a recv buffer.
@@ -117,8 +125,8 @@ Recv_buf_p pop_recv_buf_from_shm_stack();
 /**
  * @brief Get the next image segment index to download in the shared memory
  * @return The next image segment index to download
- *         >= 0 if there is still image segment to download;
- *         -1 if there is no more image segment to download and the producer should exit
+ *        @retval >= 0 if there is still image segment to download;
+ *        @retval -1 if there is no more image segment to download and the producer should exit
  * @note This function is thread safe and is protected by a 
  *       binary semaphore. Every time this function is called,
  *       the index will be increased by 1.

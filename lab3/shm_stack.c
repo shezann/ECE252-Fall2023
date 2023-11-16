@@ -46,9 +46,9 @@
  *         items points to.
  */
 
-int sizeof_shm_stack(int size)
+size_t sizeof_shm_stack(int size)
 {
-    return (sizeof(RecvStack) + SHM_BUF_SIZE * size);
+    return (sizeof(RecvStack) + SHM_BUF_SIZE * (size_t)size);
 }
 
 /**
@@ -116,7 +116,15 @@ int push(RecvStack *p, Recv_buf_p item)
 
     if ( !is_full(p) ) {
         ++(p->pos);
-        deep_copy_recv_buf(item, p->items + p->pos * SHM_BUF_SIZE, SHM_BUF_SIZE);
+        //printf("push %d, %d, %ld, %p\n", p->pos, item->seq, item->size, p->items + p->pos * SHM_BUF_SIZE);
+        unsigned char* dest_buf = p->items + p->pos * SHM_BUF_SIZE;
+        memcpy(dest_buf, item, sizeof(Recv_buf_t));
+        memcpy(dest_buf + sizeof(Recv_buf_t), item->buf, item->max_size);
+        ((Recv_buf_p) dest_buf)->buf = dest_buf + sizeof(Recv_buf_t);
+        // unsigned char* ptr = dest_buf;
+        // for (int i=0; i<512; i++) {
+        //      printf("%02x ", ptr[i]);
+        // }
         return 0;
     } else {
         return -1;
@@ -139,15 +147,23 @@ int pop(RecvStack *p, Recv_buf_p *p_item)
     if ( !is_empty(p) ) {
         // Now only gods know what I am doing here
         Recv_buf_p p_recv_buf = ((Recv_buf_p) (p->items + p->pos * SHM_BUF_SIZE));
+
+        // unsigned char* ptr = (unsigned char*)p_recv_buf;
+        // for (int i=0; i<512; i++) {
+        //      printf("%02x ", ptr[i]);
+        // }
+        // printf("\n");
+        
         *p_item = create_recv_buf();
         (*p_item)->buf = (unsigned char *) malloc(p_recv_buf->max_size);
         memcpy((*p_item)->buf,
             p->items + p->pos * SHM_BUF_SIZE + sizeof(Recv_buf_t), 
-            p_recv_buf->max_size
+            BUF_SIZE
             );
         (*p_item)->size = p_recv_buf->size;
         (*p_item)->max_size = p_recv_buf->max_size;
         (*p_item)->seq = p_recv_buf->seq;
+        
         (p->pos)--;
         return 0;
     } else {

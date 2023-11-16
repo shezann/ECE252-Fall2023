@@ -3,11 +3,10 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 
-#define NUM_ITEMS 4
+#define NUM_ITEMS 10
 
 int main(int argc, char* argv[]) {
-    init_shared_mem(NUM_ITEMS);
-
+    init_shared_mem(NUM_ITEMS, 0);
 
     for (int i=0; i<NUM_ITEMS; i++) {
         pid_t pid = fork();

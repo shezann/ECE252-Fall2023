@@ -8,7 +8,7 @@
  * @brief  stack to push/pop integer(s), API header  
  * @author yqhuang@uwaterloo.ca
  */
-
+#include "stdlib.h"
 #include "urlutils.h"
 
 typedef struct recv_stack
@@ -18,7 +18,7 @@ typedef struct recv_stack
     unsigned char* items;   /* stack of stored recv buf */
 } RecvStack;
 
-int sizeof_shm_stack(int size);
+size_t sizeof_shm_stack(int size);
 int init_shm_stack(RecvStack *p, int stack_size);
 int is_full(RecvStack *p);
 int is_empty(RecvStack *p);

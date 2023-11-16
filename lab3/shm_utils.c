@@ -1,4 +1,5 @@
 #include "shm_utils.h"
+// #define DEBUG
 
 _shared_mem_t _shared_mem = {0};
 
@@ -48,7 +49,56 @@ void _init_shm_sem(_shm_holder_p shm_holder, int value) {
     _detach_shm(shm_holder);
 }
 
-void init_shared_mem(int max_stack_size) {
+int _is_all_png_downloaded() {
+    _attach_shm(&_shared_mem._shmid_sem_png_array_mutex);
+    if (sem_wait(_shared_mem._shmid_sem_png_array_mutex._shmaddr) != 0) {
+        perror("sem_wait");
+        abort();
+    }
+
+    int res;
+    int* count;
+    int* num_consumers;
+
+    _attach_shm(&_shared_mem._downloaded_count);
+    _attach_shm(&_shared_mem._num_consumers);
+    count = (int*) _shared_mem._downloaded_count._shmaddr;
+
+    num_consumers = (int*) _shared_mem._num_consumers._shmaddr;
+    
+    // printf("Requiring to download: %d\n", *count + 1);
+
+    if (*num_consumers <= 0) {
+        res = 1; 
+        // If the number of consumers are more
+        // than the number of pngs left to download
+        // We shall terminate one consumer
+    } else if (*count >= NUM_SEGMENTS) {
+        *num_consumers -= 1;
+        res = 1;
+    } else {
+        *count += 1;
+        res = 0;
+    }
+
+    #ifdef DEBUG
+    printf("Res: %d\n", res);
+    #endif
+
+    _detach_shm(&_shared_mem._num_consumers);
+    _detach_shm(&_shared_mem._downloaded_count);
+
+    // Signal that the png array is not being accessed
+    if (sem_post(_shared_mem._shmid_sem_png_array_mutex._shmaddr) != 0) {
+        perror("sem_post");
+        abort();
+    }
+    _detach_shm(&_shared_mem._shmid_sem_png_array_mutex);
+
+    return res;
+}
+
+void init_shared_mem(int max_stack_size, int num_consumers) {
     // Init the semaphores
     _init_shm(&_shared_mem._shmid_sem_spaces_counting, sizeof(sem_t));
     _init_shm(&_shared_mem._shmid_sem_items_counting, sizeof(sem_t));
@@ -82,10 +132,21 @@ void init_shared_mem(int max_stack_size) {
     _attach_shm(&_shared_mem._shmid_png_count);
     *((int*) _shared_mem._shmid_png_count._shmaddr) = 0;
     _detach_shm(&_shared_mem._shmid_png_count);
+
+    _init_shm(&_shared_mem._num_consumers, sizeof(int));
+    _attach_shm(&_shared_mem._num_consumers);
+    *((int*) _shared_mem._num_consumers._shmaddr) = num_consumers;
+    _detach_shm(&_shared_mem._num_consumers);
+
+    _init_shm(&_shared_mem._downloaded_count, sizeof(int));
+    _attach_shm(&_shared_mem._downloaded_count);
+    *((int*) _shared_mem._downloaded_count._shmaddr) = 0;
+    _detach_shm(&_shared_mem._downloaded_count);
 }
 
 void cleanup_shared_mem() {
     // Cleanup the semaphores
+    
     _cleanup_shm(&_shared_mem._shmid_sem_spaces_counting);
     _cleanup_shm(&_shared_mem._shmid_sem_items_counting);
     _cleanup_shm(&_shared_mem._shmid_sem_stack_mutex);
@@ -93,6 +154,7 @@ void cleanup_shared_mem() {
     _cleanup_shm(&_shared_mem._shmid_sem_download_mutex);
 
     // Cleanup the png array
+    
     _attach_shm(&_shared_mem._shmid_png_array);
     _shm_holder_p shm_holder = (_shm_holder_p) _shared_mem._shmid_png_array._shmaddr;
     for (int i = 0; i < NUM_SEGMENTS; i++) {
@@ -104,48 +166,26 @@ void cleanup_shared_mem() {
     _cleanup_shm(&_shared_mem._shmid_recv_stack);
 
     _cleanup_shm(&_shared_mem._shmid_png_count);
+
+    _cleanup_shm(&_shared_mem._num_consumers);
+    _cleanup_shm(&_shared_mem._downloaded_count);
 }
 
 // This is dumb, but I don't know how to do it better
-int add_png_to_shm_array(int index, simple_PNG_p png) {
-
-    _attach_shm(&_shared_mem._shmid_sem_png_array_mutex);
-    if (sem_wait(_shared_mem._shmid_sem_png_array_mutex._shmaddr) != 0) {
-        perror("sem_wait");
-        abort();
-    }
-    
-    // Get the array in the shared memory
+void add_png_to_shm_array(int index, simple_PNG_p png) {
+    // Get the array in the shared memory    
     _attach_shm(&_shared_mem._shmid_png_array);
-    
-    // Check if the array if full
-    int count = 0;
     _shm_holder_p shm_holder = (_shm_holder_p) _shared_mem._shmid_png_array._shmaddr;
-    for (int i = 0; i < NUM_SEGMENTS; i++) {
-        if (i == index) {
-            // Init the shared memory for the png at index
-            // This is a dynamic memory
-            _init_shm(&shm_holder[index], png->buf_length);
-            _attach_shm(&shm_holder[i]);
-            memcpy(shm_holder[index]._shmaddr, png, png->buf_length);
-            count++;
-       } else {
-            _attach_shm(&shm_holder[i]);
-            if (shm_holder[i]._shmid > 0) // Check if the png exists
-                count++;
-       }
-       _attach_shm(&shm_holder[i]);
-    }
+
+    _init_shm(&shm_holder[index], png->buf_length);
+    _attach_shm(&shm_holder[index]);
+    #ifdef DEBUG
+    printf("index: %d, %d\n", index, shm_holder[index]._shmid);
+    #endif
+    memcpy(shm_holder[index]._shmaddr, png->p_png_buffer, png->buf_length);
+    _detach_shm(&shm_holder[index]);
 
     _detach_shm(&_shared_mem._shmid_png_array);
-
-    if (sem_post(_shared_mem._shmid_sem_png_array_mutex._shmaddr) != 0) {
-        perror("sem_post");
-        abort();
-    }
-    _detach_shm(&_shared_mem._shmid_sem_png_array_mutex);
-
-    return count >= NUM_SEGMENTS;
 }
 
 void push_recv_buf_to_shm_stack(Recv_buf_p recv_buf) {
@@ -193,6 +233,9 @@ simple_PNG_p* get_all_png_from_shm_array() {
     _shm_holder_p shm_holder = (_shm_holder_p) _shared_mem._shmid_png_array._shmaddr;
     
     for (int i = 0; i < NUM_SEGMENTS; i++) {
+        #ifdef DEBUG
+        printf("attach png %d\n", i);
+        #endif
         _attach_shm(&shm_holder[i]);
 
         void* heap_buf = malloc(shm_holder[i]._size);
@@ -207,6 +250,9 @@ simple_PNG_p* get_all_png_from_shm_array() {
 }
 
 Recv_buf_p pop_recv_buf_from_shm_stack() {
+    if (_is_all_png_downloaded() == 1) {
+        return NULL;
+    }
     // Wait if the stack is empty
     _attach_shm(&_shared_mem._shmid_sem_items_counting);
     if (sem_wait(_shared_mem._shmid_sem_items_counting._shmaddr) != 0) {
@@ -247,27 +293,31 @@ Recv_buf_p pop_recv_buf_from_shm_stack() {
 }
 
 int get_download_segment_index() {
-    int res = -1;
+    int* count;
+    int res;
     _attach_shm(&_shared_mem._shmid_sem_download_mutex);
     if (sem_wait(_shared_mem._shmid_sem_download_mutex._shmaddr) != 0) {
         perror("sem_wait");
         abort();
     }
     _attach_shm(&_shared_mem._shmid_png_count);
-    res = (*((int*) _shared_mem._shmid_png_count._shmaddr))++;
+    
+    count = (int*) _shared_mem._shmid_png_count._shmaddr;
+    if (*count >= NUM_SEGMENTS) {
+        res = -1;
+    } else {
+        res = *count;
+        *count += 1;
+    }
+    
     _detach_shm(&_shared_mem._shmid_png_count);
 
-    if (sem_post(_shared_mem._shmid_sem_png_array_mutex._shmaddr) != 0) {
+    if (sem_post(_shared_mem._shmid_sem_download_mutex._shmaddr) != 0) {
         perror("sem_post");
         abort();
     }
-
+    // printf("Assigned to download %d\n", res);
     _detach_shm(&_shared_mem._shmid_sem_download_mutex);
-
-    // Check if the index is valid
-    if (res >= NUM_SEGMENTS) {
-        return -1;
-    }
 
     return res;
 }

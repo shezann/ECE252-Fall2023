@@ -71,7 +71,7 @@ void curl_cleanup(void);
  * @exception return NULL if curl_easy_init failed
  * @note The caller is responsible to call the curl_easy_cleanup method to prevent memory leak.
 */
-CURL *get_handle(char* url);
+CURL *get_handle(const char* url);
 
 /**
  * @brief get a curl handle for fetching a certain part of a image
@@ -84,7 +84,7 @@ CURL *get_handle(char* url);
  * @exception return NULL if curl_easy_init failed
  * @note The caller is responsible to call the curl_easy_cleanup method to prevent memory leak.
 */
-CURL *get_image_url_handle(char* base_url, int image_id, int image_part);
+CURL *get_image_url_handle(const char* base_url, int image_id, int image_part);
 
 /**
  * @brief fetch url content and store in memory
