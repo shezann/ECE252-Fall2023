@@ -14,7 +14,7 @@
 int main(int argc, char *argv[])
 {
     struct timeval start, end;
-    long seconds, useconds;    
+    long seconds, useconds;
     double total_time = 0.0;
 
     gettimeofday(&start, NULL);
@@ -46,7 +46,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (optind < argc) {
+    if (optind < argc)
+    {
         start_url = argv[optind];
     }
 
@@ -55,12 +56,14 @@ int main(int argc, char *argv[])
     // Insert your code here
     search_return_t *ret = NULL;
     ret = web_crawler(start_url);
-    for (int i = 0; i < ret->n_children; i++) {
-        printf("herf: %s\n", (char *) ret->children[i]);
+    for (int i = 0; i < ret->n_children; i++)
+    {
+        printf("herf: %s\n", (char *)ret->children[i]);
         free(ret->children[i]);
     }
     free(ret->children);
-    if (ret->effective_url != NULL) {
+    if (ret->effective_url != NULL)
+    {
         printf("effective url: %s\n", ret->effective_url);
         free(ret->effective_url);
     }
@@ -72,7 +75,7 @@ int main(int argc, char *argv[])
 
     seconds = end.tv_sec - start.tv_sec;
     useconds = end.tv_usec - start.tv_usec;
-    total_time = seconds + useconds/1E6;
+    total_time = seconds + useconds / 1E6;
 
     printf("%s execution time: %f seconds\n", argv[0], total_time);
     return 0;

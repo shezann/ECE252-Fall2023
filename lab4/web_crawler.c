@@ -2,20 +2,24 @@
 
 const uint8_t PNG_SIGNITURE[] = {137, 80, 78, 71, 13, 10, 26, 10};
 
-char* _logfile = NULL;
+char *_logfile = NULL;
 pthread_mutex_t _logfile_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void set_logfile(char *filename) {
+void set_logfile(char *filename)
+{
     _logfile = filename;
 }
 
-void _log(const char* fmt, ...) {
+void _log(const char *fmt, ...)
+{
     va_list args;
     va_start(args, fmt);
     pthread_mutex_lock(&_logfile_mutex);
-    if (_logfile != NULL) {
-        FILE* fp = fopen(_logfile, "a");
-        if (fp != NULL) {
+    if (_logfile != NULL)
+    {
+        FILE *fp = fopen(_logfile, "a");
+        if (fp != NULL)
+        {
             vfprintf(fp, fmt, args);
             fclose(fp);
         }
@@ -266,7 +270,8 @@ xmlXPathObjectPtr getnodeset(xmlDocPtr doc, xmlChar *xpath)
     return result;
 }
 
-int find_http(char* buf, int size, int follow_relative_links, const char *base_url, queue_t* ret) {
+int find_http(char *buf, int size, int follow_relative_links, const char *base_url, queue_t *ret)
+{
     int i;
     htmlDocPtr doc;
     xmlChar *xpath = (xmlChar *)"//a/@href";
@@ -274,7 +279,8 @@ int find_http(char* buf, int size, int follow_relative_links, const char *base_u
     xmlXPathObjectPtr result;
     xmlChar *href;
 
-    if (buf == NULL) {
+    if (buf == NULL)
+    {
 #ifdef DEBUG
         fprintf(stderr, "buf is NULL\n");
 #endif /* DEBUG */
@@ -282,7 +288,8 @@ int find_http(char* buf, int size, int follow_relative_links, const char *base_u
     }
 
     doc = mem_getdoc(buf, size, base_url);
-    if (doc == NULL) {
+    if (doc == NULL)
+    {
 #ifdef DEBUG
         fprintf(stderr, "doc is NULL\n");
 #endif /* DEBUG */
@@ -291,7 +298,8 @@ int find_http(char* buf, int size, int follow_relative_links, const char *base_u
     }
 
     result = getnodeset(doc, xpath);
-    if (result == NULL) {
+    if (result == NULL)
+    {
 #ifdef DEBUG
         fprintf(stderr, "result is NULL\n");
 #endif /* DEBUG */
@@ -299,23 +307,27 @@ int find_http(char* buf, int size, int follow_relative_links, const char *base_u
         xmlCleanupParser();
         return 1;
     }
-    
+
     nodeset = result->nodesetval;
-    for (i = 0; i < nodeset->nodeNr; i++) {
+    for (i = 0; i < nodeset->nodeNr; i++)
+    {
         href = xmlNodeListGetString(doc, nodeset->nodeTab[i]->xmlChildrenNode, 1);
-        if (href == NULL) {
+        if (href == NULL)
+        {
 #ifdef DEBUG
             fprintf(stderr, "href is NULL\n");
 #endif /* DEBUG */
             continue;
         }
 
-        if (follow_relative_links == 1) {
+        if (follow_relative_links == 1)
+        {
             xmlChar *old = href;
             href = xmlBuildURI(href, (xmlChar *)base_url);
             xmlFree(old);
-        } 
-        if (href != NULL && !strncmp((const char *)href, "http", 4)) {
+        }
+        if (href != NULL && !strncmp((const char *)href, "http", 4))
+        {
             queue_enqueue(ret, (const char *)href);
 #ifdef DEBUG
             printf("href: %s\n", href);
@@ -324,12 +336,11 @@ int find_http(char* buf, int size, int follow_relative_links, const char *base_u
         xmlFree(href);
     }
     xmlXPathFreeObject(result);
-    
+
     xmlFreeDoc(doc);
     xmlCleanupParser();
     return 0;
 }
-
 
 /**
  * @brief process the download data by curl and save the potiential urls to the queue
@@ -343,18 +354,21 @@ int find_http(char* buf, int size, int follow_relative_links, const char *base_u
  *  @retval NULL if the received data is not a png
  * @note the caller is responsible for freeing the returned string
  */
-char* process_data(CURL *curl_handle, RECV_BUF *p_recv_buf, queue_t *ret) {
+char *process_data(CURL *curl_handle, RECV_BUF *p_recv_buf, queue_t *ret)
+{
     CURLcode res;
     long response_code;
 
     res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-    if (res == CURLE_OK) {
+    if (res == CURLE_OK)
+    {
 #ifdef DEBUG
         printf("Response code: %ld\n", response_code);
 #endif
     }
 
-    if (response_code >= 400) {
+    if (response_code >= 400)
+    {
 #ifdef DEBUG
         fprintf(stderr, "Error.\n");
 #endif
@@ -362,11 +376,14 @@ char* process_data(CURL *curl_handle, RECV_BUF *p_recv_buf, queue_t *ret) {
     }
     char *ct = NULL;
     res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_TYPE, &ct);
-    if (res == CURLE_OK && ct != NULL) {
+    if (res == CURLE_OK && ct != NULL)
+    {
 #ifdef DEBUG
         printf("Content-Type: %s, len=%ld\n", ct, strlen(ct));
 #endif
-    } else {
+    }
+    else
+    {
 #ifdef DEBUG
         fprintf(stderr, "Failed obtain Content-Type\n");
 #endif
@@ -379,26 +396,31 @@ char* process_data(CURL *curl_handle, RECV_BUF *p_recv_buf, queue_t *ret) {
     strcpy(eurl, eurl_tmp);
 
     // printf("effective url: %s\n", eurl);
-    if (strstr(ct, CT_PNG)) {
-        if (is_png((uint8_t *) p_recv_buf->buf, p_recv_buf->size) == 1 && 
-            eurl != NULL) {
+    if (strstr(ct, CT_PNG))
+    {
+        if (is_png((uint8_t *)p_recv_buf->buf, p_recv_buf->size) == 1 &&
+            eurl != NULL)
+        {
             return eurl;
         }
-        #ifdef DEBUG
+#ifdef DEBUG
         fprintf(stderr, "Fake png file: %s\n", eurl);
-        #endif
-    } else if (strstr(ct, CT_HTML)) {
+#endif
+    }
+    else if (strstr(ct, CT_HTML))
+    {
         find_http(p_recv_buf->buf, p_recv_buf->size, 1, eurl, ret);
     }
 
     return NULL;
 }
 
-search_return_t *web_crawler(void *arg) {
-    const char* url = (const char*) arg;
+search_return_t *web_crawler(void *arg)
+{
+    const char *url = (const char *)arg;
 
     _log(url);
-    
+
     // Initialize curl
     CURL *curl_handle;
     CURLcode res;
@@ -406,7 +428,8 @@ search_return_t *web_crawler(void *arg) {
 
     curl_handle = easy_handle_init(&recv_buf, url);
 
-    if ( curl_handle == NULL ) {
+    if (curl_handle == NULL)
+    {
 #ifdef DEBUG
         fprintf(stderr, "Curl initialization failed. Exiting...\n");
 #endif
@@ -416,7 +439,8 @@ search_return_t *web_crawler(void *arg) {
     // Get it
     res = curl_easy_perform(curl_handle);
 
-    if( res != CURLE_OK) {
+    if (res != CURLE_OK)
+    {
 #ifdef DEBUG
         fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 #endif
@@ -428,11 +452,11 @@ search_return_t *web_crawler(void *arg) {
     queue_t queue;
     queue_init(&queue);
 
-    search_return_t* ret = malloc(sizeof(search_return_t));
+    search_return_t *ret = malloc(sizeof(search_return_t));
 
     ret->effective_url = process_data(curl_handle, &recv_buf, &queue);
     ret->n_children = queue_size(&queue);
-    ret->children = (void**) queue_to_array(&queue);
+    ret->children = (void **)queue_to_array(&queue);
 
     cleanup(curl_handle, &recv_buf);
     queue_cleanup(&queue);
