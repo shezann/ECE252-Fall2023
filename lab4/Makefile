@@ -1,6 +1,3 @@
-# Makefile, ECE252
-# Yiqing Huang <yqhuang@uwaterloo.ca>
-
 CC = gcc 
 CFLAGS_XML2 = $(shell xml2-config --cflags)
 CFLAGS_CURL = $(shell curl-config --cflags)
@@ -9,25 +6,36 @@ LD = gcc
 LDFLAGS = -std=gnu99 -g 
 LDLIBS_XML2 = $(shell xml2-config --libs)
 LDLIBS_CURL = $(shell curl-config --libs)
-LDLIBS = $(LDLIBS_XML2) $(LDLIBS_CURL) -lpthread
+LDLIBS = $(LDLIBS_XML2) $(LDLIBS_CURL) -lz -pthread
 
-SRCS   = findpng2.c
-OBJS   = findpng2.o
-TARGET = findpng2
+BUILD_DIRECTORY = obj
 
-all: $(TARGET)
+# Source files
+SRCS = $(filter-out test.c, $(wildcard *.c))
 
-findpng2: $(OBJS)
-	$(LD) -o $@ $^ $(LDLIBS) $(LDFLAGS)
+# Object files
+OBJS = $(addprefix $(BUILD_DIRECTORY)/, $(SRCS:.c=.o))
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $<
+# All targets
+TARGETS = paster2
 
-%.d: %.c
-	gcc -MM -MF $@ $<
+# Target: all
+all: findpng2
 
--include $(SRCS:.c=.d)
+# Target: paster
+findpng2 : $(OBJS)
+	$(LD) -o $@ $^ $(LDLIBS) $(CFLAGS)
 
-.PHONY: clean
+# Target: clean
 clean:
-	rm -f *~ *.d *.o $(TARGET) *.png *.html
+	rm -rf $(TARGETS) $(OBJS) $(TARGETS) $(BUILD_DIRECTORY)
+
+# Pattern rule for object files
+$(BUILD_DIRECTORY)/%.o: %.c | obj
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Create obj directory if it doesn't exist
+obj:
+	mkdir -p $(BUILD_DIRECTORY)
+
+.PHONY: clean all

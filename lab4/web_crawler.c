@@ -8,6 +8,11 @@ pthread_mutex_t _logfile_mutex = PTHREAD_MUTEX_INITIALIZER;
 void set_logfile(char *filename)
 {
     _logfile = filename;
+    FILE* fp = fopen(_logfile, "w");
+    if (fp != NULL) {
+        fprintf(fp, "");
+        fclose(fp);
+    }
 }
 
 void _log(const char *fmt, ...)
@@ -21,6 +26,7 @@ void _log(const char *fmt, ...)
         if (fp != NULL)
         {
             vfprintf(fp, fmt, args);
+            fprintf(fp, "\n");
             fclose(fp);
         }
     }
@@ -293,7 +299,6 @@ int find_http(char *buf, int size, int follow_relative_links, const char *base_u
 #ifdef DEBUG
         fprintf(stderr, "doc is NULL\n");
 #endif /* DEBUG */
-        xmlCleanupParser();
         return 1;
     }
 
@@ -304,7 +309,6 @@ int find_http(char *buf, int size, int follow_relative_links, const char *base_u
         fprintf(stderr, "result is NULL\n");
 #endif /* DEBUG */
         xmlFreeDoc(doc);
-        xmlCleanupParser();
         return 1;
     }
 
@@ -338,7 +342,7 @@ int find_http(char *buf, int size, int follow_relative_links, const char *base_u
     xmlXPathFreeObject(result);
 
     xmlFreeDoc(doc);
-    xmlCleanupParser();
+    
     return 0;
 }
 
@@ -399,19 +403,19 @@ char *process_data(CURL *curl_handle, RECV_BUF *p_recv_buf, queue_t *ret)
     if (strstr(ct, CT_PNG))
     {
         if (is_png((uint8_t *)p_recv_buf->buf, p_recv_buf->size) == 1 &&
-            eurl != NULL)
-        {
+            eurl_tmp != NULL) {
             return eurl;
-        }
+        } 
+        
 #ifdef DEBUG
         fprintf(stderr, "Fake png file: %s\n", eurl);
 #endif
-    }
-    else if (strstr(ct, CT_HTML))
+    } else if (strstr(ct, CT_HTML))
     {
-        find_http(p_recv_buf->buf, p_recv_buf->size, 1, eurl, ret);
+        find_http(p_recv_buf->buf, p_recv_buf->size, 1, eurl_tmp, ret);
     }
 
+    free(eurl);
     return NULL;
 }
 

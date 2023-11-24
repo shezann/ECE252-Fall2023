@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -22,9 +22,11 @@ int main(int argc, char *argv[])
     int num_threads = 1;
     int num_png_urls = 50;
     char *logfile = NULL;
-    char *start_url = "http://ece252-3.uwaterloo.ca:2540/image?q=gAAAAABdHkoqOKR-cFRCkiCUBEMAAAWfDvBFlRisL9ysLWHYHbcQbn1b28PV_uHBZ0gJf5bvzrnf1HNXxB6KRlAVETwTIqBH2Q==";
+    char *start_url = SEED_URL;
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
+
+    xmlInitParser();
 
     int opt;
     while ((opt = getopt(argc, argv, "t:m:v:")) != -1)
@@ -53,21 +55,44 @@ int main(int argc, char *argv[])
 
     set_logfile(logfile);
 
-    // Insert your code here
-    search_return_t *ret = NULL;
-    ret = web_crawler(start_url);
-    for (int i = 0; i < ret->n_children; i++)
-    {
-        printf("herf: %s\n", (char *)ret->children[i]);
-        free(ret->children[i]);
+
+    /* Insert your code here */ 
+
+    bfs_t breath_first_search;
+    bfs_init(&breath_first_search, num_threads, num_png_urls, web_crawler);
+
+    queue_t* ret = bfs_start(&breath_first_search, start_url);
+
+    FILE* fp = fopen("png_urls.txt", "w");
+    while (queue_is_empty(ret) == 0) {
+        char* url = queue_dequeue(ret);
+        fprintf(fp, "%s\n", url);
+        // printf("png: %s\n", url);
+        free(url);
     }
-    free(ret->children);
-    if (ret->effective_url != NULL)
-    {
-        printf("effective url: %s\n", ret->effective_url);
-        free(ret->effective_url);
-    }
+    fclose(fp);
+    queue_cleanup(ret);
     free(ret);
+
+    bfs_cleanup(&breath_first_search);
+
+    // search_return_t *ret = NULL;
+    // ret = web_crawler(start_url);
+    // for (int i = 0; i < ret->n_children; i++)
+    // {
+    //     printf("herf: %s\n", (char *)ret->children[i]);
+    //     free(ret->children[i]);
+    // }
+    // free(ret->children);
+    // if (ret->effective_url != NULL)
+    // {
+    //     printf("effective url: %s\n", ret->effective_url);
+    //     free(ret->effective_url);
+    // }
+    // free(ret);
+
+    // Cleanup phase
+    xmlCleanupParser();
 
     curl_global_cleanup();
 
