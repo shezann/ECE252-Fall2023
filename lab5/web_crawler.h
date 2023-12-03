@@ -10,10 +10,9 @@
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
 #include <libxml/uri.h>
-#include <pthread.h>
 
-#include "bfs.h"
 #include "queue.h"
+#include "bfs.h"
 
 #define SEED_URL "http://ece252-1.uwaterloo.ca/lab4/"
 #define ECE252_HEADER "X-Ece252-Fragment: "
@@ -71,5 +70,3 @@ int find_http(char *buf,
               queue_t *ret);
 
 char *process_data(CURL *curl_handle, RECV_BUF *p_recv_buf, queue_t *ret);
-
-search_return_t *web_crawler(void *arg);
