@@ -80,3 +80,16 @@ char** queue_to_array(queue_t *q) {
 
     return array;
 }
+
+void queue_clear(queue_t *q) {
+    node_t *curr = q->head;
+    while (curr != NULL) {
+        node_t *next = curr->next;
+        free(curr->value);
+        free(curr);
+        curr = next;
+    }
+    q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
+}

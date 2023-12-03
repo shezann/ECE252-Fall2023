@@ -1,6 +1,5 @@
 #pragma once
 
-#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -69,3 +68,5 @@ const char* queue_peek(queue_t *q);
 void queue_cleanup(queue_t *q);
 
 char** queue_to_array(queue_t *q);
+
+void queue_clear(queue_t *q);

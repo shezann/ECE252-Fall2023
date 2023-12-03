@@ -1,13 +1,9 @@
 CC = gcc 
-CFLAGS_XML2 = $(shell xml2-config --cflags)
-CFLAGS_CURL = $(shell curl-config --cflags)
-CFLAGS = -Wall $(CFLAGS_XML2) $(CFLAGS_CURL) -std=gnu99 -g -DDEBUG1_
+CFLAGS_LIBS = $(shell pkg-config --cflags libxml-2.0 libcurl)
+CFLAGS = -Wall $(CFLAGS_LIBS) -std=gnu99 -g
 LD = gcc
 LDFLAGS = -std=gnu99 -g 
-LDLIBS_XML2 = $(shell xml2-config --libs)
-LDLIBS_CURL = $(shell curl-config --libs)
-LDLIBS = $(LDLIBS_XML2) $(LDLIBS_CURL) -lz -pthread
-
+LDLIBS = $(shell pkg-config --libs libxml-2.0 libcurl)
 BUILD_DIRECTORY = obj
 
 # Source files
@@ -17,13 +13,13 @@ SRCS = $(filter-out test.c, $(wildcard *.c))
 OBJS = $(addprefix $(BUILD_DIRECTORY)/, $(SRCS:.c=.o))
 
 # All targets
-TARGETS = paster2
+TARGETS = findpng3
 
 # Target: all
-all: findpng2
+all: $(TARGETS)
 
 # Target: paster
-findpng2 : $(OBJS)
+findpng3 : $(OBJS)
 	$(LD) -o $@ $^ $(LDLIBS) $(CFLAGS)
 
 # Target: clean
