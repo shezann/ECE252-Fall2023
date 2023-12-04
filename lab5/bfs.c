@@ -1,150 +1,129 @@
 #include "bfs.h"
 
-void bfs_init(bfs_t* bfs, size_t n_threads, size_t max_results, search_return_t* (*work)(void*)) {
-    bfs->work = work;
+void bfs_init(bfs_t* bfs, size_t max_results, size_t max_connections) {
     bfs->max_results = max_results;
-    bfs->waiting_threads = 0;
-    bfs->work_done = 0;
-    bfs->n_threads = n_threads;
+    bfs->max_conntions = max_connections;
 
     queue_init(&bfs->frontier);
     queue_init(&bfs->search_results);
     hashmap_init(&bfs->visited, 100);
-    
-    pthread_mutex_init(&bfs->mutex, NULL);
-    pthread_cond_init(&bfs->not_empty, NULL);
 }
 
 void bfs_cleanup(bfs_t* bfs) {
     queue_cleanup(&bfs->frontier);
     queue_cleanup(&bfs->search_results);
     hashmap_cleanup(&bfs->visited);
-
-    pthread_mutex_destroy(&bfs->mutex);
-    pthread_cond_destroy(&bfs->not_empty);
 }
 
-int _process_search_result(bfs_t* bfs , const search_return_t* ret) {
-    pthread_mutex_lock(&bfs->mutex);
-
-    if (bfs->work_done == 1) {
-        pthread_mutex_unlock(&bfs->mutex);
-        return 1;
-    }
-
-    // Enqueue all the children
-    if (ret->effective_url != NULL) {
-        queue_enqueue(&bfs->search_results, ret->effective_url);
-        if (queue_size(&bfs->search_results) == bfs->max_results) { 
-            // If the maximum number of results is reached, then quit
-            bfs->work_done = 1;
-            pthread_cond_broadcast(&bfs->not_empty); // Broadcast to release all threads
-            pthread_mutex_unlock(&bfs->mutex); 
-            return 1;
-        }
-    } else if (ret->n_children > 0) {
-        for (int i = 0; i < ret->n_children; i++) {
-            const char* child = ret->children[i];
-            if (hashmap_contains(&bfs->visited, child) == 0) { // If the child is not visited, then enqueue it
-                hashmap_put(&bfs->visited, child);
-                queue_enqueue(&bfs->frontier, child);
-            }
-        }
-        pthread_cond_broadcast(&bfs->not_empty); // Broadcast to release all threads that there is work to be done
-    }
+void _search_one_cycle(bfs_t* bfs, CURLM* curl_multi, size_t* num_png_found) {
+    CURLMsg* msg = NULL;
+    RECV_BUF* private_recv_buf = NULL;
+    int still_running = 0;
+    // Transfer
+    curl_multi_perform(curl_multi, &still_running);
     
-    pthread_mutex_unlock(&bfs->mutex); 
-
-    return 0;
-}
-
-void* _bfs_concurrent_search(bfs_t* bfs) {
-    while (1) {
-        // Lock the queue mutex to check if the queue is empty
-        pthread_mutex_lock(&bfs->mutex);
-        
-        // If the queue is empty
-        if (queue_is_empty(&bfs->frontier)) {
-            bfs->waiting_threads++; // Increment the number of waiting threads
-            
-            if (bfs->waiting_threads == bfs->n_threads) { // If all threads are waiting, then quit this thread
-                bfs->work_done = 1;
-                pthread_cond_broadcast(&bfs->not_empty); // Broadcast to release all threads
-                pthread_mutex_unlock(&bfs->mutex);
-                break;
-            }
-            
-            pthread_cond_wait(&bfs->not_empty, &bfs->mutex); // Wait for the queue to be non-empty
-
-            if (bfs->work_done == 1) { // If the work is done, then quit this thread
-                
-                pthread_mutex_unlock(&bfs->mutex);
-                
-                break;
-            }
-            
-            bfs->waiting_threads -= 1;
+    do {
+        int numfds = 0;
+        int rc = curl_multi_wait(curl_multi, NULL, 0, MAX_WAIT_MSECS, &numfds);
+        if (rc != CURLM_OK) {
+            fprintf(stderr, "curl_multi_wait() failed, code %d.\n", rc);
+            break;
         }
-        
-        char* node = queue_dequeue(&bfs->frontier);
+        curl_multi_perform(curl_multi, &still_running);
+    } while (still_running == 1);
 
-        if (node == NULL) { // If the queue is empty, then probably another thread dequeued the last element
-            pthread_mutex_unlock(&bfs->mutex);
+
+    // Process the messages
+    int msgs_left = 0;
+    while ((msg = curl_multi_info_read(curl_multi, &msgs_left))) {
+        if (msg->msg != CURLMSG_DONE) {
+            fprintf(stderr, "error: after curl_multi_info_read(), CURLMsg=%d\n", msg->msg);
             continue;
         }
 
-        pthread_mutex_unlock(&bfs->mutex); // Unlock the queue mutex as we already have a node to work on
-
-        // Work on the node concurrently
-        search_return_t* ret = bfs->work((void*) node);
+        // int return_code = msg->data.result;
+        // if (return_code != CURLE_OK) {
+        //     fprintf(stderr, "CURL error code: %d\n", msg->data.result);
+        //     continue;
+        // }
         
-        if (ret != NULL) {
+        // Get the saved RECV_BUF
+        curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &private_recv_buf);
+        
+        if (*num_png_found >= bfs->max_results) {
+            recv_buf_cleanup(private_recv_buf);
 
-            int should_stop = _process_search_result(bfs, ret);
-            if (ret->effective_url != NULL) {
-                free(ret->effective_url);
-            }
-            for (int i = 0; i < ret->n_children; i++) {
-                free(ret->children[i]);
-            }
-            free(ret->children);
-            free(ret);
-
-            if (should_stop == 1) {
-                free(node);
-                return NULL;
-            }
+            curl_multi_remove_handle(curl_multi, msg->easy_handle);
+            curl_easy_cleanup(msg->easy_handle);            
+            continue;
         }
-        free(node);
-    
-        // The thread will continue to wait for work to be done
 
+        // Process the data
+        queue_t new_urls;
+        queue_init(&new_urls);
+        
+        char* effective_url = process_data(msg->easy_handle, private_recv_buf, &new_urls);
+        
+        if (effective_url != NULL) { // Is a PNG
+            (*num_png_found)++;
+            queue_enqueue(&bfs->search_results, effective_url);
+            free(effective_url);
+        } else {
+            char* new_url; // Get the new URLs
+            while ((new_url = queue_dequeue(&new_urls)) != NULL) {
+                if (hashmap_contains(&bfs->visited, new_url) == 0) {
+                    hashmap_put(&bfs->visited, new_url);
+                    queue_enqueue(&bfs->frontier, new_url);
+                }
+                free(new_url);
+            }
+
+            queue_cleanup(&new_urls);
+        }
+        
+        recv_buf_cleanup(private_recv_buf);
+        
+        curl_multi_remove_handle(curl_multi, msg->easy_handle);
+        curl_easy_cleanup(msg->easy_handle);
     }
-
-    return NULL;
-
 }
 
+
 queue_t* bfs_start(bfs_t* bfs, const char* root) {
-    if (bfs->n_threads == 0) {
-        return NULL;
-    }
-
-    // Enqueue the root node
     queue_enqueue(&bfs->frontier, root);
-    hashmap_put(&bfs->visited, root);
+    CURLM* curl_multi;
+    CURL* curl_handle;
+    size_t num_png_found = 0;
+    while (queue_is_empty(&bfs->frontier) == 0) {
+        
+        curl_multi = curl_multi_init();
 
-    pthread_t* threads = malloc(sizeof(pthread_t) * bfs->n_threads);
+        // Get connections from frontier
+        int num_opened_connections = min(bfs->max_conntions, bfs->frontier.size);
 
-    for (int i = 0; i < bfs->n_threads; i++) { // Create all the threads
-        pthread_create(&threads[i], NULL, (void* (*)(void*)) _bfs_concurrent_search, bfs);
+        RECV_BUF** recv_bufs = malloc(sizeof(RECV_BUF*) * num_opened_connections);
+ 
+        char* url;
+        for (int i = 0; i < num_opened_connections; i++) {
+            url = queue_dequeue(&bfs->frontier);
+            recv_bufs[i] = malloc(sizeof(RECV_BUF)); // All of these RECV_BUFs will be freed in the curl_multi_info_read loop
+            
+            curl_handle = easy_handle_init(recv_bufs[i], url);
+           
+            curl_multi_add_handle(curl_multi, curl_handle);
+            
+            _log(url);
+            
+            free(url);
+        }
+
+        // Perform bfs
+        _search_one_cycle(bfs, curl_multi, &num_png_found);
+        
+        free(recv_bufs);
+
+        curl_multi_cleanup(curl_multi);
     }
-
-    for (int i = 0; i < bfs->n_threads; i++) { // Wait for all the threads to finish
-        pthread_join(threads[i], NULL);
-    }
-
-    free(threads);
 
     // Copy the search results to a new queue
     queue_t* search_results = malloc(sizeof(queue_t));
