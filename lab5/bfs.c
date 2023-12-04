@@ -6,7 +6,7 @@ void bfs_init(bfs_t* bfs, size_t max_results, size_t max_connections) {
 
     queue_init(&bfs->frontier);
     queue_init(&bfs->search_results);
-    hashmap_init(&bfs->visited, 100);
+    hashmap_init(&bfs->visited, 200);
 }
 
 void bfs_cleanup(bfs_t* bfs) {
