@@ -52,7 +52,8 @@ int main(int argc, char *argv[])
         start_url = argv[optind];
     }
 
-    set_logfile(logfile);
+    if (logfile)
+        set_logfile(logfile);
 
     /* Insert your code here */ 
 

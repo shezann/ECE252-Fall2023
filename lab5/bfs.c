@@ -30,7 +30,7 @@ void _search_one_cycle(bfs_t* bfs, CURLM* curl_multi, size_t* num_png_found) {
             break;
         }
         curl_multi_perform(curl_multi, &still_running);
-    } while (still_running == 1);
+    } while (still_running);
 
 
     // Process the messages
@@ -52,9 +52,9 @@ void _search_one_cycle(bfs_t* bfs, CURLM* curl_multi, size_t* num_png_found) {
         
         if (*num_png_found >= bfs->max_results) {
             recv_buf_cleanup(private_recv_buf);
-
+            free(private_recv_buf);  
             curl_multi_remove_handle(curl_multi, msg->easy_handle);
-            curl_easy_cleanup(msg->easy_handle);            
+            curl_easy_cleanup(msg->easy_handle);         
             continue;
         }
 
@@ -82,6 +82,7 @@ void _search_one_cycle(bfs_t* bfs, CURLM* curl_multi, size_t* num_png_found) {
         }
         
         recv_buf_cleanup(private_recv_buf);
+        free(private_recv_buf);
         
         curl_multi_remove_handle(curl_multi, msg->easy_handle);
         curl_easy_cleanup(msg->easy_handle);
