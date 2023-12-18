@@ -14,14 +14,14 @@ Test Passed: Student used cURL multi handle +1
 
 -- case 3.1 --
 >> Running: ./findpng3 -t 20 -m 20 http://ece252-1.uwaterloo.ca/lab4
-./findpng3 execution time: 2.864298 seconds
+./findpng3 execution time: 3.116503 seconds
 Found: 20
 Test Passed: Running with -t 20 -m 20 collected 20 unique and valid pngs +1
 
 -- case 3.2 --
 >> Running: ./findpng3 -t 20 -m 100 -v log.txt http://ece252-1.uwaterloo.ca/lab4
-./findpng3 execution time: 4.875529 seconds
-Found: 50 pngs
+./findpng3 execution time: 4.898812 seconds
+Found: 50
 Confirming that pngs found are valid
 Test Passed: Running with -t 20 -m 100 collected 50 unique, valid pngs +1
 
@@ -33,42 +33,46 @@ Test Passed: With -t 20 -m 100 visited >= 347 urls +1
 
 -- case 4.1 --
 >> Running: ./findpng3 -t 12 -m 20 http://ece252-1.uwaterloo.ca/lab4
-./findpng3 execution time: 4.799416 seconds
+./findpng3 execution time: 4.776515 seconds
 Thread count: 1
 Test Passed: Correctly spawns only 1 thread with -t in [5,20] +1
 
 ======= PART 5 =======
-Running 3 test cases for timings test
+Running 5 x 3 test cases for timings test
+Executions are:
+>> ./findpng3 -t 1 -m 20
+>> ./findpng3 -t 10 -m 20
+>> ./findpng3 -t 20 -m 20
+Beginning...
 1 Worker
- >> Running: ./findpng3 -t 1 -m 100 http://ece252-1.uwaterloo.ca/lab4
-./findpng3 execution time: 61.001935 seconds
+ avg / 5 runs:44.51
 10 Workers:
- >> Running: ./findpng3 -t 10 -m 100 http://ece252-1.uwaterloo.ca/lab4
-./findpng3 execution time: 7.919610 seconds
+ avg / 5 runs:5.59
 20 Workers:
- >> Running: ./findpng3 -t 20 -m 100 http://ece252-1.uwaterloo.ca/lab4
-./findpng3 execution time: 4.475617 seconds
+ avg / 5 runs:3.17
 
 -- case 5.1 --
 Test Passed: Running with -t20 was >= 2x but < 16x faster than -t1 +0.5
 
 -- case 5.2 --
-Test Passed: Running with -t10 was >= 2x but < 8x faster than -t1 +0.5
+Test Passed: Running with -t10 was >= 8x faster than -t1 (or took <= 4.8s) +1
 
 ======= PART 6 =======
 Running 3 test cases for results test
 >> Running: ./findpng3 -t 20 -m 3 -v log.txt http://ece252-1.uwaterloo.ca/lab4
-./findpng3 execution time: 1.253916 seconds
+./findpng3 execution time: 1.411444 seconds
 >> Running: ./findpng3 -t 20 -m 50 -v log.txt http://ece252-1.uwaterloo.ca/lab4
-./findpng3 execution time: 4.655952 seconds
+./findpng3 execution time: 4.658092 seconds
 >> Running: ./findpng3 -t 20 -m 100 -v log.txt http://ece252-1.uwaterloo.ca/lab4
-./findpng3 execution time: 4.627144 seconds
+./findpng3 execution time: 4.895755 seconds
 
 -- case 6.1 --
+Found 3 for -m=3, 50 for -m=50, and 50 for -m=100
 Test Passed: Number of pngs is correct in all run cases +1
 
 -- case 6.2 --
-Test Failed: Number of URLs visited for -m 50 >= -m 100 -1
+NOTE: This test has been regraded to unconditionally pass.
+Test Passed:  Number of URLs visited for -m 50 <= -m 100 +1
 
 -- case 6.3 --
 Test Passed: Run time for -m 100 is <= 2X of -m 50 +1
@@ -90,15 +94,15 @@ Tests Passed:
 - With -t 20 -m 100 visited >= 347 urls +1
 - Correctly spawns only 1 thread with -t in [5,20] +1
 - Running with -t20 was >= 2x but < 16x faster than -t1 +0.5
-- Running with -t10 was >= 2x but < 8x faster than -t1 +0.5
+- Running with -t10 was >= 8x faster than -t1 (or took <= 4.8s) +1
 - Number of pngs is correct in all run cases +1
+-  Number of URLs visited for -m 50 <= -m 100 +1
 - Run time for -m 100 is <= 2X of -m 50 +1
 - Did not find definitely lost bytes +0.5
 
 Tests Failed:
 ---------------
-- Number of URLs visited for -m 50 >= -m 100 -1
 ########### Score ###########
-Total lab 5 score: 9.0/11
+Total lab 5 score: 10.5/11
 
 #### Additional Comments ####
