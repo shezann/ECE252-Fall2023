@@ -191,8 +191,12 @@ No executable found +1
 
 Makefile score: 5/5
 File organization score: 10/10
-paster2 multi-threaded score: 49/86
-Total lab 3 score: 64/101
+paster2 multi-threaded score: 79/86
+Total lab 3 score: 94/101
 
 ########### Additional Comments ###########
 A remark request for Part 6 has been filed on your behalf. You can file a separate remark request for a different part of this report
+
+Remark approved by OV
++24/26 for CSV marking results
++6 for accepted cases
